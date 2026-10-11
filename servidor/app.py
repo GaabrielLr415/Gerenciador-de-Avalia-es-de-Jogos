@@ -43,6 +43,23 @@ def cadastrar_jogo():
             "erro": "O ano de lançamento deve ser um número inteiro válido."
         }), 400
 
+    # Verifica se o nome do jogo é válido
+    nome = dados["nome"]
+
+    if not isinstance(nome, str) or not nome.strip():
+        return jsonify({
+            "erro": "O nome do jogo deve ser um texto válido."
+        }), 400
+
+    # Verifica se gênero e plataforma são textos válidos
+    for campo in ["genero", "plataforma"]:
+        valor = dados[campo]
+
+        if not isinstance(valor, str) or not valor.strip():
+            return jsonify({
+                "erro": f"O campo '{campo}' deve ser um texto válido."
+            }), 400
+
     return jsonify({
         "mensagem": "Dados do jogo recebidos",
         "jogo": dados
