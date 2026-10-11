@@ -1,5 +1,6 @@
 # Servidor Flask responsável pela API do TechGames
 from flask import Flask, jsonify, request
+from uuid import uuid4
 
 app = Flask(__name__)
 
@@ -68,10 +69,17 @@ def cadastrar_jogo():
             "erro": "A descrição do jogo deve ser um texto válido."
         }), 400
 
-    return jsonify({
-        "mensagem": "Dados do jogo recebidos",
-        "jogo": dados
-    }), 200
+    # Cria o jogo com um identificador único
+    jogo = {
+        "id": str(uuid4()),
+        "nome": dados["nome"].strip(),
+        "genero": dados["genero"].strip(),
+        "plataforma": dados["plataforma"].strip(),
+        "ano_lancamento": dados["ano_lancamento"],
+        "descricao": dados.get("descricao") or ""
+    }
+
+    return jsonify(jogo), 201
 
 
 if __name__ == "__main__":
