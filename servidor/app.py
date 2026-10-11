@@ -60,6 +60,14 @@ def cadastrar_jogo():
                 "erro": f"O campo '{campo}' deve ser um texto válido."
             }), 400
 
+    # Verifica se a descrição é um texto válido
+    descricao = dados.get("descricao", "")
+
+    if descricao is not None and not isinstance(descricao, str):
+        return jsonify({
+            "erro": "A descrição do jogo deve ser um texto válido."
+        }), 400
+
     return jsonify({
         "mensagem": "Dados do jogo recebidos",
         "jogo": dados
