@@ -218,3 +218,7 @@ __marimo__/
 
 # Streamlit
 .streamlit/secrets.toml
+
+# TechGames local persistence artifacts
+dados/.contadores_id.json
+dados/*.bak

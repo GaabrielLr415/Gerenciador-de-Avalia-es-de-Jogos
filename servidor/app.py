@@ -1,17 +1,26 @@
-
 # Servidor Flask responsável pela API do TechGames
 from datetime import datetime
+from pathlib import Path
+import sys
+
 from flask import Flask, jsonify, request
+
+# Garante que o pacote 'servidor' possa ser importado independentemente do diretório de execução
+DIRETORIO_RAIZ = Path(__file__).resolve().parents[1]
+if str(DIRETORIO_RAIZ) not in sys.path:
+    sys.path.insert(0, str(DIRETORIO_RAIZ))
+
+from servidor.storage.repositorio_json import RepositorioJSON
 
 app = Flask(__name__)
 
-# Armazenamento temporário para testar o servidor
-# Depois será substituído pelo JSON desenvolvido pela Angélica
-jogos = []
-avaliacoes = []
+# Repositório padrão persistente em arquivos JSON (dados/jogos.json e dados/avaliacoes.json)
+repositorio_padrao = RepositorioJSON()
 
-proximo_id_jogo = 1
-proximo_id_avaliacao = 1
+
+def obter_repositorio() -> RepositorioJSON:
+    """Retorna o repositório configurado na aplicação ou o repositório JSON padrão."""
+    return app.config.get("REPOSITORIO", repositorio_padrao)
 
 
 # Função para retornar mensagens de erro
@@ -21,21 +30,6 @@ def erro(mensagem, status=400):
         "detalhes": mensagem
     }), status
 
-
-# Procura um jogo pelo ID
-def encontrar_jogo(jogo_id):
-    for jogo in jogos:
-        if jogo["id"] == jogo_id:
-            return jogo
-    return None
-
-
-# Procura uma avaliação pelo ID
-def encontrar_avaliacao(avaliacao_id):
-    for avaliacao in avaliacoes:
-        if avaliacao["id"] == avaliacao_id:
-            return avaliacao
-    return None
 
 
 # Valida os dados de um jogo
@@ -115,13 +109,15 @@ def health():
 # Rota para listar todos os jogos
 @app.get("/jogos")
 def listar_jogos():
-    return jsonify(jogos), 200
+    repo = obter_repositorio()
+    return jsonify(repo.listar_jogos()), 200
 
 
 # Rota para buscar um jogo pelo ID
 @app.get("/jogos/<int:jogo_id>")
 def buscar_jogo(jogo_id):
-    jogo = encontrar_jogo(jogo_id)
+    repo = obter_repositorio()
+    jogo = repo.buscar_jogo(jogo_id)
 
     if jogo is None:
         return erro("Jogo não encontrado.", 404)
@@ -132,21 +128,14 @@ def buscar_jogo(jogo_id):
 # Rota para cadastrar um novo jogo
 @app.post("/jogos")
 def cadastrar_jogo():
-    global proximo_id_jogo
-
     dados = request.get_json(silent=True)
     jogo_validado, mensagem = validar_jogo(dados)
 
     if mensagem:
         return erro(mensagem)
 
-    jogo = {
-        "id": proximo_id_jogo,
-        **jogo_validado
-    }
-
-    jogos.append(jogo)
-    proximo_id_jogo += 1
+    repo = obter_repositorio()
+    jogo = repo.criar_jogo(jogo_validado)
 
     return jsonify(jogo), 201
 
@@ -154,9 +143,10 @@ def cadastrar_jogo():
 # Rota para atualizar um jogo
 @app.put("/jogos/<int:jogo_id>")
 def atualizar_jogo(jogo_id):
-    jogo = encontrar_jogo(jogo_id)
+    repo = obter_repositorio()
+    jogo_existente = repo.buscar_jogo(jogo_id)
 
-    if jogo is None:
+    if jogo_existente is None:
         return erro("Jogo não encontrado.", 404)
 
     dados = request.get_json(silent=True)
@@ -165,26 +155,19 @@ def atualizar_jogo(jogo_id):
     if mensagem:
         return erro(mensagem)
 
-    jogo.update(jogo_validado)
+    jogo_atualizado = repo.atualizar_jogo(jogo_id, jogo_validado)
 
-    return jsonify(jogo), 200
+    return jsonify(jogo_atualizado), 200
 
 
 # Rota para excluir um jogo
 @app.delete("/jogos/<int:jogo_id>")
 def excluir_jogo(jogo_id):
-    jogo = encontrar_jogo(jogo_id)
+    repo = obter_repositorio()
+    excluido = repo.excluir_jogo(jogo_id)
 
-    if jogo is None:
+    if not excluido:
         return erro("Jogo não encontrado.", 404)
-
-    jogos.remove(jogo)
-
-    # Exclui também as avaliações relacionadas ao jogo
-    avaliacoes[:] = [
-        avaliacao for avaliacao in avaliacoes
-        if avaliacao["jogo_id"] != jogo_id
-    ]
 
     return jsonify({
         "mensagem": "Jogo excluído"
@@ -194,15 +177,13 @@ def excluir_jogo(jogo_id):
 # Rota para listar as avaliações de um jogo
 @app.get("/jogos/<int:jogo_id>/avaliacoes")
 def listar_avaliacoes(jogo_id):
-    jogo = encontrar_jogo(jogo_id)
+    repo = obter_repositorio()
+    jogo = repo.buscar_jogo(jogo_id)
 
     if jogo is None:
         return erro("Jogo não encontrado.", 404)
 
-    resultado = [
-        avaliacao for avaliacao in avaliacoes
-        if avaliacao["jogo_id"] == jogo_id
-    ]
+    resultado = repo.listar_avaliacoes(jogo_id)
 
     return jsonify(resultado), 200
 
@@ -210,9 +191,8 @@ def listar_avaliacoes(jogo_id):
 # Rota para cadastrar uma avaliação
 @app.post("/jogos/<int:jogo_id>/avaliacoes")
 def cadastrar_avaliacao(jogo_id):
-    global proximo_id_avaliacao
-
-    jogo = encontrar_jogo(jogo_id)
+    repo = obter_repositorio()
+    jogo = repo.buscar_jogo(jogo_id)
 
     if jogo is None:
         return erro("Jogo não encontrado.", 404)
@@ -223,14 +203,7 @@ def cadastrar_avaliacao(jogo_id):
     if mensagem:
         return erro(mensagem)
 
-    avaliacao = {
-        "id": proximo_id_avaliacao,
-        "jogo_id": jogo_id,
-        **avaliacao_validada
-    }
-
-    avaliacoes.append(avaliacao)
-    proximo_id_avaliacao += 1
+    avaliacao = repo.criar_avaliacao(jogo_id, avaliacao_validada)
 
     return jsonify(avaliacao), 201
 
@@ -238,9 +211,10 @@ def cadastrar_avaliacao(jogo_id):
 # Rota para atualizar uma avaliação
 @app.put("/avaliacoes/<int:avaliacao_id>")
 def atualizar_avaliacao(avaliacao_id):
-    avaliacao = encontrar_avaliacao(avaliacao_id)
+    repo = obter_repositorio()
+    avaliacao_existente = repo.buscar_avaliacao(avaliacao_id)
 
-    if avaliacao is None:
+    if avaliacao_existente is None:
         return erro("Avaliação não encontrada.", 404)
 
     dados = request.get_json(silent=True)
@@ -249,24 +223,24 @@ def atualizar_avaliacao(avaliacao_id):
     if mensagem:
         return erro(mensagem)
 
-    avaliacao.update(avaliacao_validada)
+    avaliacao_atualizada = repo.atualizar_avaliacao(avaliacao_id, avaliacao_validada)
 
-    return jsonify(avaliacao), 200
+    return jsonify(avaliacao_atualizada), 200
 
 
 # Rota para excluir uma avaliação
 @app.delete("/avaliacoes/<int:avaliacao_id>")
 def excluir_avaliacao(avaliacao_id):
-    avaliacao = encontrar_avaliacao(avaliacao_id)
+    repo = obter_repositorio()
+    excluida = repo.excluir_avaliacao(avaliacao_id)
 
-    if avaliacao is None:
+    if not excluida:
         return erro("Avaliação não encontrada.", 404)
-
-    avaliacoes.remove(avaliacao)
 
     return jsonify({
         "mensagem": "Avaliação excluída"
     }), 200
+
 
 
 # Inicia o servidor Flask
