@@ -249,6 +249,9 @@ class RepositorioJSON:
         """
         Exclui um jogo pelo ID e remove em cascata todas as avaliações associadas a ele.
         Retorna True se o jogo existia e foi excluído, ou False caso contrário.
+
+        Se a gravação das avaliações falhar, tenta restaurar os jogos originais.
+        A recuperação não é uma transação entre arquivos e também pode falhar.
         """
         jogos = self._ler_lista(self.caminho_jogos)
         jogos_restantes = [jogo for jogo in jogos if jogo.get("id") != jogo_id]
@@ -256,26 +259,43 @@ class RepositorioJSON:
         if len(jogos_restantes) == len(jogos):
             return False
 
-        maior_id_jogo = max((jogo.get("id", 0) for jogo in jogos), default=0)
-        contadores = self._ler_contadores()
-        if maior_id_jogo > contadores["ultimo_id_jogo"]:
-            contadores["ultimo_id_jogo"] = maior_id_jogo
-            self._salvar_contadores(contadores)
-
-        self._salvar_lista(self.caminho_jogos, jogos_restantes)
-
-        # Exclusão em cascata das avaliações vinculadas ao jogo excluído
+        # Prepara os dados antes de gravar a exclusão e mantém os jogos originais.
         avaliacoes = self._ler_lista(self.caminho_avaliacoes)
+        contadores = self._ler_contadores()
         avaliacoes_restantes = [
             av for av in avaliacoes if av.get("jogo_id") != jogo_id
         ]
+
+        # Preserva o histórico de IDs antes de remover qualquer registro.
+        contadores_atualizados = {
+            "ultimo_id_jogo": max(
+                contadores["ultimo_id_jogo"],
+                max((jogo.get("id", 0) for jogo in jogos), default=0),
+            ),
+            "ultimo_id_avaliacao": max(
+                contadores["ultimo_id_avaliacao"],
+                max((av.get("id", 0) for av in avaliacoes), default=0),
+            ),
+        }
+        if contadores_atualizados != contadores:
+            self._salvar_contadores(contadores_atualizados)
+
+        self._salvar_lista(self.caminho_jogos, jogos_restantes)
+
         if len(avaliacoes_restantes) != len(avaliacoes):
-            maior_id_av = max((av.get("id", 0) for av in avaliacoes), default=0)
-            contadores = self._ler_contadores()
-            if maior_id_av > contadores["ultimo_id_avaliacao"]:
-                contadores["ultimo_id_avaliacao"] = maior_id_av
-                self._salvar_contadores(contadores)
-            self._salvar_lista(self.caminho_avaliacoes, avaliacoes_restantes)
+            try:
+                self._salvar_lista(self.caminho_avaliacoes, avaliacoes_restantes)
+            except OSError as erro_avaliacoes:
+                try:
+                    self._salvar_lista(self.caminho_jogos, jogos)
+                except OSError as erro_restauracao:
+                    raise RuntimeError(
+                        "Falha ao gravar as avaliações e ao restaurar os jogos; "
+                        "os arquivos podem estar inconsistentes. "
+                        f"Gravação das avaliações: {erro_avaliacoes}. "
+                        f"Restauração dos jogos: {erro_restauracao}."
+                    ) from erro_restauracao
+                raise
 
         return True
 
