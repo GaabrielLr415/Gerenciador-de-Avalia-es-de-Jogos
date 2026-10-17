@@ -25,11 +25,27 @@ def obter_repositorio() -> RepositorioJSON:
 
 # Função para retornar mensagens de erro
 def erro(mensagem, status=400):
+    tipos_erros = {
+        400: "Dados inválidos",
+        404: "Não encontrado",
+        500: "Erro interno do servidor"
+    }
+
     return jsonify({
-        "erro": "Dados inválidos" if status == 400 else "Não encontrado",
+        "erro": tipos_erros.get(status, "Erro na requisição"),
         "detalhes": mensagem
     }), status
 
+
+# Trata erros internos do servidor
+@app.errorhandler(500)
+def tratar_erro_interno(excecao):
+    app.logger.error("Erro interno no servidor: %s", excecao)
+
+    return erro(
+        "Não foi possível concluir a operação.",
+        500
+    )
 
 
 # Valida os dados de um jogo
@@ -245,4 +261,4 @@ def excluir_avaliacao(avaliacao_id):
 
 # Inicia o servidor Flask
 if __name__ == "__main__":
-    app.run(debug=True)
+    app.run(debug=False)
