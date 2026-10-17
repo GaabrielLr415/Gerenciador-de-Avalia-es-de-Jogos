@@ -23,6 +23,22 @@ ARQUIVO_JOGOS_PADRAO = DIRETORIO_DADOS_PADRAO / "jogos.json"
 ARQUIVO_AVALIACOES_PADRAO = DIRETORIO_DADOS_PADRAO / "avaliacoes.json"
 
 
+class AvaliacaoSemAutorError(PermissionError):
+    """Impede alterações de avaliações sem autoria até a definição da regra pelo Proxy."""
+
+
+def validar_metadados(metadados: Any) -> None:
+    """Exige um objeto serializável em JSON sem números não finitos, mesmo aninhados."""
+    if not isinstance(metadados, dict):
+        raise ValueError("Os metadados devem ser um objeto JSON.")
+    try:
+        json.dumps(metadados, allow_nan=False)
+    except (TypeError, ValueError) as exc:
+        raise ValueError(
+            "Os metadados devem conter apenas valores compatíveis com JSON estrito."
+        ) from exc
+
+
 class RepositorioJSON:
     """
     Repositório para armazenamento e recuperação de Jogos e Avaliações em arquivos JSON.
@@ -303,6 +319,15 @@ class RepositorioJSON:
     # Operações de Avaliações
     # -------------------------------------------------------------------------
 
+    @staticmethod
+    def _exigir_autor_identificado(avaliacao: dict[str, Any]) -> None:
+        autor_id = avaliacao.get("autor_id")
+        if type(autor_id) is not int or autor_id <= 0:
+            raise AvaliacaoSemAutorError(
+                "Avaliações sem autor identificado não podem ser alteradas ou excluídas "
+                "até a definição da regra de autorização."
+            )
+
     def listar_avaliacoes(self, jogo_id: int) -> list[dict[str, Any]]:
         """Retorna todas as avaliações associadas a um determinado jogo_id."""
         avaliacoes = self._ler_lista(self.caminho_avaliacoes)
@@ -318,6 +343,13 @@ class RepositorioJSON:
 
     def criar_avaliacao(self, jogo_id: int, dados: dict[str, Any]) -> dict[str, Any]:
         """Cria uma nova avaliação para um jogo com ID único gerado automaticamente."""
+        autor_id = dados.get("autor_id")
+        if type(autor_id) is not int or autor_id <= 0:
+            raise ValueError("O autor_id deve ser um inteiro positivo.")
+
+        metadados = dados.get("metadados", {})
+        validar_metadados(metadados)
+
         avaliacoes = self._ler_lista(self.caminho_avaliacoes)
         novo_id = self._gerar_proximo_id_avaliacao(avaliacoes)
 
@@ -327,8 +359,10 @@ class RepositorioJSON:
         nova_avaliacao = {
             "id": novo_id,
             "jogo_id": int(jogo_id),
+            "autor_id": autor_id,
             "nota": nota,
             "comentario": str(dados.get("comentario", "")).strip(),
+            "metadados": metadados,
         }
 
         avaliacoes.append(nova_avaliacao)
@@ -339,21 +373,27 @@ class RepositorioJSON:
         self, avaliacao_id: int, dados: dict[str, Any]
     ) -> dict[str, Any] | None:
         """
-        Atualiza nota e comentário de uma avaliação existente.
-        O campo jogo_id não pode ser alterado conforme contrato.
+        Atualiza nota, comentário e metadados de uma avaliação existente.
+        Preserva id, jogo_id, autor_id e os metadados quando estes são omitidos.
         """
         avaliacoes = self._ler_lista(self.caminho_avaliacoes)
 
         for indice, avaliacao in enumerate(avaliacoes):
             if avaliacao.get("id") == avaliacao_id:
+                self._exigir_autor_identificado(avaliacao)
+                metadados = dados.get("metadados", avaliacao.get("metadados", {}))
+                validar_metadados(metadados)
+
                 nota_bruta = dados["nota"]
                 nota = int(nota_bruta) if isinstance(nota_bruta, int) else float(nota_bruta)
 
                 avaliacao_atualizada = {
                     "id": avaliacao_id,
                     "jogo_id": avaliacao["jogo_id"],
+                    "autor_id": avaliacao["autor_id"],
                     "nota": nota,
                     "comentario": str(dados.get("comentario", "")).strip(),
+                    "metadados": metadados,
                 }
                 avaliacoes[indice] = avaliacao_atualizada
                 self._salvar_lista(self.caminho_avaliacoes, avaliacoes)
@@ -367,6 +407,9 @@ class RepositorioJSON:
         Retorna True se foi excluída ou False se não foi encontrada.
         """
         avaliacoes = self._ler_lista(self.caminho_avaliacoes)
+        for avaliacao in avaliacoes:
+            if avaliacao.get("id") == avaliacao_id:
+                self._exigir_autor_identificado(avaliacao)
         avaliacoes_restantes = [
             av for av in avaliacoes if av.get("id") != avaliacao_id
         ]
