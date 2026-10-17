@@ -10,7 +10,11 @@ DIRETORIO_RAIZ = Path(__file__).resolve().parents[1]
 if str(DIRETORIO_RAIZ) not in sys.path:
     sys.path.insert(0, str(DIRETORIO_RAIZ))
 
-from servidor.storage.repositorio_json import RepositorioJSON
+from servidor.storage.repositorio_json import (
+    AvaliacaoSemAutorError,
+    RepositorioJSON,
+    validar_metadados,
+)
 
 app = Flask(__name__)
 
@@ -27,6 +31,7 @@ def obter_repositorio() -> RepositorioJSON:
 def erro(mensagem, status=400):
     tipos_erros = {
         400: "Dados inválidos",
+        403: "Acesso negado",
         404: "Não encontrado",
         500: "Erro interno do servidor"
     }
@@ -46,6 +51,11 @@ def tratar_erro_interno(excecao):
         "Não foi possível concluir a operação.",
         500
     )
+
+
+@app.errorhandler(AvaliacaoSemAutorError)
+def tratar_avaliacao_sem_autor(excecao):
+    return erro(str(excecao), 403)
 
 
 # Valida os dados de um jogo
@@ -88,7 +98,7 @@ def validar_jogo(dados):
 
 
 # Valida os dados de uma avaliação
-def validar_avaliacao(dados):
+def validar_avaliacao(dados, *, criacao=True):
     if not isinstance(dados, dict):
         return None, "Envie os dados da avaliação em JSON."
 
@@ -109,6 +119,20 @@ def validar_avaliacao(dados):
         "nota": nota,
         "comentario": comentario.strip()
     }
+
+    if criacao:
+        autor_id = dados.get("autor_id")
+        if type(autor_id) is not int or autor_id <= 0:
+            return None, "O autor_id deve ser um inteiro positivo."
+        avaliacao_validada["autor_id"] = autor_id
+
+    if criacao or "metadados" in dados:
+        metadados = dados.get("metadados", {})
+        try:
+            validar_metadados(metadados)
+        except ValueError as exc:
+            return None, str(exc)
+        avaliacao_validada["metadados"] = metadados
 
     return avaliacao_validada, None
 
@@ -234,7 +258,7 @@ def atualizar_avaliacao(avaliacao_id):
         return erro("Avaliação não encontrada.", 404)
 
     dados = request.get_json(silent=True)
-    avaliacao_validada, mensagem = validar_avaliacao(dados)
+    avaliacao_validada, mensagem = validar_avaliacao(dados, criacao=False)
 
     if mensagem:
         return erro(mensagem)
