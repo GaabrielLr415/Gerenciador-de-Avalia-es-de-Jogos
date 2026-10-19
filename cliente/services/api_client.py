@@ -7,7 +7,11 @@ class APIClient:
         self.base_url = base_url.rstrip("/")
         self.timeout = 5
 
-    
+
+    def verificar_servidor(self):
+        return self._request("GET", "/health")
+
+
     def _request(self, method, endpoint, **kwargs):
         url = f"{self.base_url}{endpoint}"
 
