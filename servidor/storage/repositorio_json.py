@@ -237,6 +237,8 @@ class RepositorioJSON:
             "descricao": str(dados.get("descricao", "")).strip(),
         }
 
+        if "capa_url" in dados:
+            novo_jogo["capa_url"] = str(dados["capa_url"]).strip()
         jogos.append(novo_jogo)
         self._salvar_lista(self.caminho_jogos, jogos)
         return novo_jogo
@@ -255,6 +257,8 @@ class RepositorioJSON:
                     "ano_lancamento": int(dados["ano_lancamento"]),
                     "descricao": str(dados.get("descricao", "")).strip(),
                 }
+                if "capa_url" in dados or "capa_url" in jogo:
+                    jogo_atualizado["capa_url"] = str(dados.get("capa_url", jogo.get("capa_url", ""))).strip()
                 jogos[indice] = jogo_atualizado
                 self._salvar_lista(self.caminho_jogos, jogos)
                 return jogo_atualizado

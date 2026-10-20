@@ -84,10 +84,22 @@ class APIClient:
         return self._request("GET", f"/jogos/{jogo_id}")
 
     def cadastrar_jogo(self, dados):
+        self._verificar_suporte_capa(dados)
         return self._request("POST", "/jogos", json=dados)
 
     def editar_jogo(self, jogo_id, dados):
+        self._verificar_suporte_capa(dados)
         return self._request("PUT", f"/jogos/{jogo_id}", json=dados)
+
+    def _verificar_suporte_capa(self, dados):
+        if dados.get("capa_url"):
+            estado = self.verificar_servidor()
+            if "capa_url" not in estado.get("recursos", []):
+                raise Exception(
+                    "O servidor aberto está desatualizado e não salva links de capa. "
+                    "No terminal do servidor, pressione Ctrl+C e execute novamente "
+                    "python -m servidor.app. Depois tente Salvar outra vez."
+                )
 
     def excluir_jogo(self, jogo_id):
         return self._request("DELETE", f"/jogos/{jogo_id}")

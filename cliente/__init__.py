@@ -1,0 +1,1 @@
+"""Cliente desktop TechGames."""

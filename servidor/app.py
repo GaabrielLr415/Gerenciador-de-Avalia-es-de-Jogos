@@ -2,6 +2,7 @@
 from datetime import datetime
 from pathlib import Path
 import sys
+from urllib.parse import urlparse
 
 from flask import Flask, jsonify, request
 
@@ -94,6 +95,20 @@ def validar_jogo(dados):
         "descricao": descricao.strip()
     }
 
+    if "capa_url" in dados:
+        capa_url = dados["capa_url"]
+        if not isinstance(capa_url, str):
+            return None, "O link da capa deve ser um texto válido."
+        capa_url = capa_url.strip()
+        try:
+            endereco = urlparse(capa_url)
+            valido = endereco.scheme in ("http", "https") and bool(endereco.hostname)
+        except ValueError:
+            valido = False
+        if capa_url and not valido:
+            return None, "Informe um link de capa HTTP ou HTTPS válido."
+        jogo_validado["capa_url"] = capa_url
+
     return jogo_validado, None
 
 
@@ -142,7 +157,8 @@ def validar_avaliacao(dados, *, criacao=True):
 def health():
     return jsonify({
         "status": "ok",
-        "aplicacao": "TechGames"
+        "aplicacao": "TechGames",
+        "recursos": ["capa_url"],
     })
 
 

@@ -1,1 +1,11 @@
-[]
+[
+  {
+    "id": 2,
+    "nome": "GTA 6",
+    "genero": "Mundo Aberto",
+    "plataforma": "PlayStation",
+    "ano_lancamento": 2026,
+    "descricao": "",
+    "capa_url": "https://s2-techtudo.glbimg.com/iSACGnb2qaVzJyv0lpMA-uk2AK8=/0x0:1440x2560/984x0/smart/filters:strip_icc()/i.s3.glbimg.com/v1/AUTH_08fbf48bc0524877943fe86e43087e7a/internal_photos/bs/2025/5/1/RvDHm1QOaYGkr67qdRiw/gta-6-wallpaper-smartphone-blaue-gtaforums.jpg"
+  }
+]

@@ -78,7 +78,7 @@ class APIFlaskTestes(unittest.TestCase):
 
     def test_health_e_endpoints_preservados(self):
         self.assertEqual(self.cliente.get("/health").get_json(), {
-            "status": "ok", "aplicacao": "TechGames",
+            "status": "ok", "aplicacao": "TechGames", "recursos": ["capa_url"],
         })
         rotas = {
             (metodo, regra.rule)

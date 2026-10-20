@@ -2,15 +2,15 @@
 
 Aplicação acadêmica para cadastro de jogos e avaliações, desenvolvida em Python.
 O servidor fornece uma API REST com Flask e persiste os dados em arquivos JSON
-locais, sem banco de dados. A interface Qt e a integração HTTP estão em
-desenvolvimento.
+locais, sem banco de dados. A interface Qt permite gerenciar jogos e avaliações
+por estrelas, integrada ao servidor via HTTP.
 
 ## Tecnologias
 
 - Python
 - Flask (servidor)
-- PySide6 (interface prevista)
-- Requests (cliente HTTP previsto)
+- PySide6 (interface desktop)
+- Requests (cliente HTTP)
 - Arquivos JSON locais (persistência)
 
 ## Estrutura do repositório
@@ -42,8 +42,16 @@ python servidor\app.py
 ```
 
 O servidor de desenvolvimento ficará disponível em `http://127.0.0.1:5000`.
-Confira se está ativo em `http://127.0.0.1:5000/health`. O servidor usa modo de
-depuração para desenvolvimento local; não o publique diretamente na internet.
+Confira se está ativo em `http://127.0.0.1:5000/health`. Em outro terminal, com o
+mesmo ambiente virtual ativado, inicie a interface:
+
+```powershell
+python -m cliente
+```
+
+Consulte [as instruções da interface](cliente/README.md) para o uso das estrelas,
+configuração do endereço e roteiro de apresentação. O servidor integrado é o
+servidor de desenvolvimento do Flask, voltado ao uso local.
 
 ## Persistência
 
@@ -75,8 +83,9 @@ python -m unittest discover -s testes -p "test_*.py" -v
 
 ## Estado da entrega
 
-A persistência JSON está implementada e coberta por testes focados. A
-documentação final depende de confirmar o contrato com Gabriel, incorporar os
-requisitos oficiais de João Pedro e receber de Edino as classes reais do
-cliente. Consulte o documento de acompanhamento antes de considerar a entrega
-final aprovada.
+A persistência JSON, a API e a interface Qt estão implementadas e cobertas por
+testes automatizados. A interface inclui avaliações por estrelas, nota decimal,
+média das avaliações e tratamento de falhas de conexão. A autorização real por
+autor/moderador e a validação completa dos padrões do plano de testes ainda
+dependem da integração da equipe. Consulte o documento de acompanhamento antes
+de considerar a entrega final aprovada.
