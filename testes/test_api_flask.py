@@ -371,6 +371,59 @@ class APIFlaskTestes(unittest.TestCase):
                 })
                 self.assertEqual(self.arquivos_atuais(), antes)
 
+    def test_permissionerror_de_leitura_retorna500_sem_expor_caminhos(self):
+        jogo = self.criar_jogo()
+        self.criar_avaliacao(jogo["id"])
+        antes = self.arquivos_atuais()
+        ler = Path.read_text
+        casos = (
+            ("/jogos", self.repositorio.caminho_jogos),
+            (f"/jogos/{jogo['id']}/avaliacoes", self.repositorio.caminho_avaliacoes),
+            (f"/jogos/{jogo['id']}/media", self.repositorio.caminho_avaliacoes),
+        )
+        for rota, arquivo in casos:
+            with self.subTest(rota=rota):
+                def falhar(caminho, *args, **kwargs):
+                    if caminho == arquivo:
+                        raise PermissionError(13, "Acesso negado", str(arquivo))
+                    return ler(caminho, *args, **kwargs)
+
+                with patch.object(Path, "read_text", new=falhar):
+                    with self.assertLogs(self.api.app.logger, level="ERROR"):
+                        resposta = self.cliente.get(rota)
+                self.verificar_erro(resposta, 500)
+                self.assertEqual(resposta.get_json(), {
+                    "erro": "Erro interno do servidor", "detalhes": "Não foi possível concluir a operação.",
+                })
+                self.assertEqual(self.arquivos_atuais(), antes)
+
+    def test_permissionerror_de_gravacao_retorna500_e_preserva_dados(self):
+        jogo = self.criar_jogo()
+        avaliacao = self.criar_avaliacao(jogo["id"])
+        antes = self.arquivos_atuais()
+        substituir = storage.os.replace
+        casos = (
+            ("PUT", f"/jogos/{jogo['id']}", self.dados_jogo(), self.repositorio.caminho_jogos),
+            ("PUT", f"/avaliacoes/{avaliacao['id']}", {"nota": 6}, self.repositorio.caminho_avaliacoes),
+            ("DELETE", f"/avaliacoes/{avaliacao['id']}", None, self.repositorio.caminho_avaliacoes),
+            ("DELETE", f"/jogos/{jogo['id']}", None, self.repositorio.caminho_avaliacoes),
+        )
+        for metodo, rota, corpo, arquivo in casos:
+            with self.subTest(metodo=metodo, rota=rota):
+                def falhar(origem, destino):
+                    if Path(destino) == arquivo:
+                        raise PermissionError(13, "Acesso negado", str(arquivo))
+                    return substituir(origem, destino)
+
+                with patch.object(storage.os, "replace", side_effect=falhar):
+                    with self.assertLogs(self.api.app.logger, level="ERROR"):
+                        resposta = self.cliente.open(rota, method=metodo, json=corpo)
+                self.verificar_erro(resposta, 500)
+                self.assertEqual(resposta.get_json(), {
+                    "erro": "Erro interno do servidor", "detalhes": "Não foi possível concluir a operação.",
+                })
+                self.assertEqual(self.arquivos_atuais(), antes)
+
     def test_falha_na_cascata_retorna500_e_restaura_jogo(self):
         jogo = self.criar_jogo()
         avaliacao = self.criar_avaliacao(jogo["id"], metadados={"origem": "local"})

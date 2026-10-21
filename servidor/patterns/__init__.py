@@ -2,4 +2,5 @@
 from .avaliacoes import (
     AvaliacaoBuilder, ServicoAvaliacoes, AvaliacoesProxy,
     EventosAvaliacoes, NotaMediaObserver,
+    AutorizacaoError,
 )
