@@ -17,7 +17,11 @@ from servidor.storage.repositorio_json import (
     validar_metadados,
 )
 
+from servidor.patterns import ServicoAvaliacoes, AvaliacoesProxy
+
 app = Flask(__name__)
+# IDs fictícios para demonstrar o Proxy, sem autenticação.
+app.config["MODERADORES_IDS"] = (99,)
 
 # Repositório padrão persistente em arquivos JSON (dados/jogos.json e dados/avaliacoes.json)
 repositorio_padrao = RepositorioJSON()
@@ -26,6 +30,31 @@ repositorio_padrao = RepositorioJSON()
 def obter_repositorio() -> RepositorioJSON:
     """Retorna o repositório configurado na aplicação ou o repositório JSON padrão."""
     return app.config.get("REPOSITORIO", repositorio_padrao)
+
+
+def obter_servico():
+    repo = obter_repositorio()
+    servico = app.extensions.get("avaliacoes")
+    if servico is None or servico.repositorio is not repo:
+        servico = ServicoAvaliacoes(repo)
+        app.extensions["avaliacoes"] = servico
+    return servico
+
+
+def obter_proxy():
+    identificacao = request.headers.get("X-Ator-Id", "")
+    if not identificacao.isascii() or not identificacao.isdecimal():
+        raise PermissionError("Informe X-Ator-Id com um inteiro positivo.")
+    # Limita a conversão de valores arbitrariamente longos.
+    if len(identificacao) > 10 or int(identificacao) > 2147483647:
+        raise PermissionError("Identificação local fora do intervalo permitido.")
+    return AvaliacoesProxy(obter_servico(), int(identificacao),
+                           app.config["MODERADORES_IDS"])
+
+
+@app.errorhandler(PermissionError)
+def tratar_permissao(excecao):
+    return erro(str(excecao), 403)
 
 
 # Função para retornar mensagens de erro
@@ -158,7 +187,7 @@ def health():
     return jsonify({
         "status": "ok",
         "aplicacao": "TechGames",
-        "recursos": ["capa_url"],
+        "recursos": ["capa_url", "design_patterns", "media_servidor"],
     })
 
 
@@ -244,6 +273,13 @@ def listar_avaliacoes(jogo_id):
     return jsonify(resultado), 200
 
 
+@app.get("/jogos/<int:jogo_id>/media")
+def consultar_media(jogo_id):
+    if obter_repositorio().buscar_jogo(jogo_id) is None:
+        return erro("Jogo não encontrado.", 404)
+    return jsonify(obter_servico().media.consultar(jogo_id)), 200
+
+
 # Rota para cadastrar uma avaliação
 @app.post("/jogos/<int:jogo_id>/avaliacoes")
 def cadastrar_avaliacao(jogo_id):
@@ -259,7 +295,7 @@ def cadastrar_avaliacao(jogo_id):
     if mensagem:
         return erro(mensagem)
 
-    avaliacao = repo.criar_avaliacao(jogo_id, avaliacao_validada)
+    avaliacao = obter_servico().publicar(jogo_id, avaliacao_validada)
 
     return jsonify(avaliacao), 201
 
@@ -279,7 +315,7 @@ def atualizar_avaliacao(avaliacao_id):
     if mensagem:
         return erro(mensagem)
 
-    avaliacao_atualizada = repo.atualizar_avaliacao(avaliacao_id, avaliacao_validada)
+    avaliacao_atualizada = obter_proxy().editar(avaliacao_id, avaliacao_validada)
 
     return jsonify(avaliacao_atualizada), 200
 
@@ -288,10 +324,9 @@ def atualizar_avaliacao(avaliacao_id):
 @app.delete("/avaliacoes/<int:avaliacao_id>")
 def excluir_avaliacao(avaliacao_id):
     repo = obter_repositorio()
-    excluida = repo.excluir_avaliacao(avaliacao_id)
-
-    if not excluida:
+    if repo.buscar_avaliacao(avaliacao_id) is None:
         return erro("Avaliação não encontrada.", 404)
+    obter_proxy().excluir(avaliacao_id)
 
     return jsonify({
         "mensagem": "Avaliação excluída"

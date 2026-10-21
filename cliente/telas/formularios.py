@@ -1,5 +1,6 @@
 """Formulários com validação local e salvamento HTTP assíncrono."""
 
+import json
 from datetime import datetime
 from urllib.parse import urlparse
 
@@ -265,6 +266,10 @@ class FormularioAvaliacao(Formulario):
             "O que você achou do jogo? (opcional)")
         self.comentario.setMinimumHeight(140)
         self.form.addRow("&Comentário", self.comentario)
+        self.metadados = QPlainTextEdit(json.dumps(registro.get("metadados", {}), ensure_ascii=False))
+        self.metadados.setPlaceholderText('{"plataforma": "PC"} (opcional)')
+        self.metadados.setMaximumHeight(75)
+        self.form.addRow("Metadados (JSON)", self.metadados)
 
     def dados(self):
         self.nota.interpretText()
@@ -273,5 +278,12 @@ class FormularioAvaliacao(Formulario):
         ), "comentario": self.comentario.toPlainText().strip()}
         if self.avaliacao is None:
             dados["autor_id"] = self.autor.value()
-        # Metadados omitidos: a API preserva os existentes durante a edição.
+        try:
+            metadados = json.loads(self.metadados.toPlainText().strip() or "{}")
+            if not isinstance(metadados, dict):
+                raise ValueError()
+            json.dumps(metadados, allow_nan=False)
+        except (ValueError, TypeError):
+            raise ValueError("Os metadados devem ser um objeto JSON válido, sem números não finitos.")
+        dados["metadados"] = metadados
         return dados

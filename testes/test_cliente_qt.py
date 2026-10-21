@@ -333,5 +333,63 @@ class ClienteQtTestes(unittest.TestCase):
         self.assertFalse(executor.ocupado)
 
 
+    def test_proxy_qt_bloqueia_outro_e_permite_moderador(self):
+        jogo = self.repo.criar_jogo(self.dados_jogo())
+        av = self.repo.criar_avaliacao(jogo["id"], {"nota":8,"autor_id":7})
+        self.janela.atualizar()
+        self.aguardar_http()
+        self.janela.ator_local.setValue(8)
+        self.janela.tabela.setCurrentCell(0, 0)
+        self.janela.abrir_edicao_avaliacao()
+        formulario = self.janela.dialogo
+        formulario.nota.setValue(2)
+        formulario.enviar()
+        self.aguardar_http()
+        self.assertTrue(formulario.isVisible())
+        self.assertIn("403", formulario.erro.text())
+        self.assertEqual(self.repo.buscar_avaliacao(av["id"])["nota"], 8)
+        formulario.reject()
+        self.janela.ator_local.setValue(99)
+        self.janela.abrir_edicao_avaliacao()
+        formulario = self.janela.dialogo
+        formulario.nota.setValue(6)
+        formulario.metadados.setPlainText('{"origem":"moderacao"}')
+        formulario.enviar()
+        self.aguardar_http()
+        self.assertEqual(self.repo.buscar_avaliacao(av["id"])["nota"], 6)
+        self.assertEqual(self.repo.buscar_avaliacao(av["id"])["metadados"], {"origem":"moderacao"})
+        self.assertIn("6,00 / 10", self.janela.media.text())
+        self.janela.tabela.setCurrentCell(0, 0)
+        with patch.object(self.janela, "_confirmar", return_value=True):
+            self.janela.remover_avaliacao()
+        self.aguardar_http()
+        self.assertIsNone(self.repo.buscar_avaliacao(av["id"]))
+        self.assertEqual(self.janela.media.text(), "Ainda sem avaliações")
+
+    def test_media_exibida_vem_do_servidor(self):
+        jogo = self.repo.criar_jogo(self.dados_jogo())
+        self.repo.criar_avaliacao(jogo["id"], {"nota":8,"autor_id":7})
+        with patch.object(self.cliente, "consultar_media", return_value={
+            "jogo_id":jogo["id"],"quantidade":1,"media":3.5}) as consulta:
+            self.janela.atualizar()
+            self.aguardar_http()
+        self.assertTrue(consulta.called)
+        self.assertIn("3,50 / 10", self.janela.media.text())
+
+    def test_metadados_invalidos_nao_sao_enviados(self):
+        jogo = self.repo.criar_jogo(self.dados_jogo())
+        self.janela.atualizar()
+        self.aguardar_http()
+        self.janela.adicionar_avaliacao()
+        formulario = self.janela.dialogo
+        for texto in ('[]', '{', '{"valor":NaN}'):
+            formulario.metadados.setPlainText(texto)
+            formulario.enviar()
+            self.assertTrue(formulario.erro.isVisible())
+            self.assertFalse(self.janela.executor.ocupado)
+        self.assertEqual(self.repo.listar_avaliacoes(jogo["id"]), [])
+        formulario.reject()
+
+
 if __name__ == "__main__":
     unittest.main()

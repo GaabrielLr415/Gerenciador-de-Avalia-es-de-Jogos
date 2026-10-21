@@ -1,13 +1,12 @@
 """Biblioteca, detalhes e avaliações; toda persistência passa pelo APIClient."""
 
-from statistics import mean
 
 from PySide6.QtCore import QSettings, QSize, QSignalBlocker, QTimer, Qt
 from PySide6.QtWidgets import (
     QAbstractItemView, QDialog, QFileDialog, QFrame, QHBoxLayout, QHeaderView, QLabel, QLineEdit,
     QListWidget, QListWidgetItem, QMainWindow, QMessageBox, QPlainTextEdit,
     QProgressBar, QPushButton, QScrollArea, QSizePolicy, QSplitter, QStackedWidget,
-    QTableWidget, QTableWidgetItem, QVBoxLayout, QWidget,
+    QTableWidget, QTableWidgetItem, QVBoxLayout, QWidget, QSpinBox,
 )
 
 from cliente.services.tarefas import ExecutorHTTP
@@ -57,6 +56,14 @@ class JanelaPrincipal(QMainWindow):
         cabecalho.addStretch()
         self.conexao = rotulo("Conectando…", "subtitulo")
         cabecalho.addWidget(self.conexao)
+        cabecalho.addWidget(rotulo("ID local:"))
+        self.ator_local = QSpinBox()
+        self.ator_local.setRange(1, 2147483647)
+        self.ator_local.setValue(self.api.ator_id)
+        self.ator_local.setToolTip("Identificação fictícia para avaliações. Moderador de demonstração: 99.")
+        self.ator_local.setAccessibleName("Identificação local para editar e excluir avaliações")
+        self.ator_local.valueChanged.connect(lambda valor: setattr(self.api, "ator_id", valor))
+        cabecalho.addWidget(self.ator_local)
         self.botao_atualizar = QPushButton("Atualizar")
         self.botao_atualizar.setToolTip(
             "Consultar novamente os dados no servidor (F5)")
@@ -279,6 +286,7 @@ class JanelaPrincipal(QMainWindow):
 
     def _ocupacao(self, ocupado):
         self.progresso.setVisible(ocupado)
+        self.ator_local.setEnabled(not ocupado)
         self.divisao.setEnabled(not ocupado)
         self.botao_atualizar.setEnabled(not ocupado)
         if ocupado:
@@ -302,9 +310,7 @@ class JanelaPrincipal(QMainWindow):
         def consultar_catalogo():
             jogos = self.api.listar_jogos()
             for jogo in jogos:
-                notas = [a["nota"]
-                         for a in self.api.listar_avaliacoes(jogo["id"])]
-                jogo["media"] = mean(notas) if notas else None
+                jogo["media"] = self.api.consultar_media(jogo["id"])["media"]
             return jogos
 
         self.executor.executar(
@@ -370,7 +376,8 @@ class JanelaPrincipal(QMainWindow):
         self.erro.hide()
 
         def consultar():
-            return self.api.buscar_jogo(jogo_id), self.api.listar_avaliacoes(jogo_id)
+            return (self.api.buscar_jogo(jogo_id), self.api.listar_avaliacoes(jogo_id),
+                    self.api.consultar_media(jogo_id))
 
         def falha(mensagem):
             self._avaliar_pendente = None
@@ -381,27 +388,26 @@ class JanelaPrincipal(QMainWindow):
         self.executor.executar(consultar, self._receber_detalhes, falha)
 
     def _receber_detalhes(self, dados):
-        self.jogo, self._avaliacoes = dados
+        self.jogo, self._avaliacoes, agregado = dados
         jogo = self.jogo
         self.titulo.setText(jogo["nome"])
         self.informacoes.setText(
             f"{jogo['genero']}  ·  {jogo['plataforma']}  ·  {jogo['ano_lancamento']}")
         self.descricao.setPlainText(
             jogo.get("descricao") or "Nenhuma descrição adicionada.")
-        notas = [a["nota"] for a in self._avaliacoes]
+        media = agregado["media"]
         item = self.lista.currentItem()
         if item is not None:
             visual = item.data(Qt.ItemDataRole.UserRole + 1) or {}
-            visual["media"] = mean(notas) if notas else None
+            visual["media"] = media
             item.setData(Qt.ItemDataRole.UserRole + 1, visual)
-        if notas:
-            media = mean(notas)
+        if media is not None:
             self.media.setText(
                 f"★ {media / 2:.2f} / 5   ·   Nota média {media:.2f} / 10".replace(".", ","))
         else:
             self.media.setText("Ainda sem avaliações")
         self.quantidade.setText(
-            f"{len(notas)} avaliação(ões) · Média das notas carregadas do servidor")
+            f"{agregado['quantidade']} avaliação(ões) · Média calculada pelo servidor")
         with QSignalBlocker(self.tabela):
             self.tabela.setRowCount(len(self._avaliacoes))
             for linha, avaliacao in enumerate(self._avaliacoes):
@@ -509,6 +515,8 @@ class JanelaPrincipal(QMainWindow):
                 self.executor, lambda dados: self.api.cadastrar_avaliacao(jogo_id, dados),
                 parent=self.janela_detalhes if self.janela_detalhes.isVisible() else self,
             )
+            formulario.autor.setValue(self.ator_local.value())
+            formulario.autor.valueChanged.connect(self.ator_local.setValue)
             formulario.setWindowTitle(f"Avaliar — {self.jogo['nome']}")
             formulario.layout_principal.insertWidget(1, rotulo(self.jogo["nome"], "titulo"))
             self._abrir_formulario(formulario, lambda _: self.atualizar(selecionar_id=jogo_id))
