@@ -3,9 +3,10 @@ import requests
 
 
 class APIClient:
-    def __init__(self, base_url="http://127.0.0.1:5000"):
+    def __init__(self, base_url="http://127.0.0.1:5000", ator_id=1):
         self.base_url = base_url.rstrip("/")
         self.timeout = 5
+        self.ator_id = ator_id
 
 
     def verificar_servidor(self):
@@ -106,6 +107,9 @@ class APIClient:
 
 
     
+    def consultar_media(self, jogo_id):
+        return self._request("GET", f"/jogos/{jogo_id}/media")
+
     def listar_avaliacoes(self, jogo_id):
         return self._request(
             "GET",
@@ -123,12 +127,14 @@ class APIClient:
         return self._request(
             "PUT",
             f"/avaliacoes/{avaliacao_id}",
+            headers={"X-Ator-Id": str(self.ator_id)},
             json=dados
         )
 
     def excluir_avaliacao(self, avaliacao_id):
         return self._request(
             "DELETE",
-            f"/avaliacoes/{avaliacao_id}"
+            f"/avaliacoes/{avaliacao_id}",
+            headers={"X-Ator-Id": str(self.ator_id)}
         )
     

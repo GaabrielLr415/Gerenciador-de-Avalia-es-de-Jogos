@@ -37,6 +37,7 @@ class APIFlaskTestes(unittest.TestCase):
         configuracao.start()
         self.addCleanup(configuracao.stop)
         self.cliente = self.api.app.test_client()
+        self.cliente.environ_base["HTTP_X_ATOR_ID"] = "7"
 
     def criar_repositorio(self):
         return storage.RepositorioJSON(
@@ -78,7 +79,7 @@ class APIFlaskTestes(unittest.TestCase):
 
     def test_health_e_endpoints_preservados(self):
         self.assertEqual(self.cliente.get("/health").get_json(), {
-            "status": "ok", "aplicacao": "TechGames", "recursos": ["capa_url"],
+            "status": "ok", "aplicacao": "TechGames", "recursos": ["capa_url", "design_patterns", "media_servidor"],
         })
         rotas = {
             (metodo, regra.rule)
@@ -90,6 +91,7 @@ class APIFlaskTestes(unittest.TestCase):
             ("GET", "/jogos/<int:jogo_id>"), ("PUT", "/jogos/<int:jogo_id>"),
             ("DELETE", "/jogos/<int:jogo_id>"),
             ("GET", "/jogos/<int:jogo_id>/avaliacoes"),
+            ("GET", "/jogos/<int:jogo_id>/media"),
             ("POST", "/jogos/<int:jogo_id>/avaliacoes"),
             ("PUT", "/avaliacoes/<int:avaliacao_id>"),
             ("DELETE", "/avaliacoes/<int:avaliacao_id>"),

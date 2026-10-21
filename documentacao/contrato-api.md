@@ -457,3 +457,19 @@ As definições devem ser confirmadas com a equipe, especialmente antes da integ
 Qualquer alteração nas rotas, campos, códigos de resposta ou formatos JSON deverá ser comunicada aos responsáveis pelos módulos afetados, evitando incompatibilidades entre cliente e servidor.
 
 **Estado:** contrato atualizado conforme a implementação atual do backend e do armazenamento JSON. A validação conjunta da equipe permanece pendente.
+## Atualização de integração — 21/10/2026
+
+Esta seção substitui pendências anteriores referentes aos padrões e à identificação
+em alterações de avaliações. PUT/DELETE /avaliacoes/<id> exigem X-Ator-Id:
+inteiro de 1 a 2147483647. O Proxy permite autor ou moderador configurado em
+MODERADORES_IDS (padrão de demonstração 99). Falta de identificação válida ou
+permissão retorna HTTP 403 com o envelope JSON existente. Autor e jogo_id não
+podem ser sobrescritos. POST continua exigindo autor_id e nota; o Builder valida
+e constrói antes da persistência. Comentário e metadados permanecem opcionais.
+
+GET /jogos/<id>/media retorna {"jogo_id":1,"quantidade":2,"media":8.5}.
+Sem avaliações: quantidade 0 e media null. Jogo inexistente: 404. A média usa a
+escala 0–10 e é atualizada pelo Observer após publicação, edição e exclusão.
+/health anuncia design_patterns e media_servidor em recursos, além de capa_url.
+As listas e envelopes CRUD existentes permanecem iguais. IDs são fictícios,
+sem login. O cliente deve enviar o ator local em cada edição/exclusão.

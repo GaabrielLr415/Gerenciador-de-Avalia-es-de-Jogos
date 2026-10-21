@@ -83,9 +83,9 @@ python -m unittest discover -s testes -p "test_*.py" -v
 
 ## Estado da entrega
 
-A persistência JSON, a API e a interface Qt estão implementadas e cobertas por
-testes automatizados. A interface inclui avaliações por estrelas, nota decimal,
-média das avaliações e tratamento de falhas de conexão. A autorização real por
-autor/moderador e a validação completa dos padrões do plano de testes ainda
-dependem da integração da equipe. Consulte o documento de acompanhamento antes
-de considerar a entrega final aprovada.
+Builder, Proxy e Observer estão integrados ao Flask e à interface Qt. Para
+editar/excluir avaliações, escolha o ID local do autor ou o moderador fictício
+99. A interface recebe a média do servidor e permite metadados JSON opcionais.
+Não há login. Consulte o [roteiro dos padrões](documentacao/entrega-design-patterns.md)
+para demonstrar os cenários T9.1 a T9.4. A revisão final dos requisitos e dos
+outros documentos da equipe continua necessária antes da entrega acadêmica.

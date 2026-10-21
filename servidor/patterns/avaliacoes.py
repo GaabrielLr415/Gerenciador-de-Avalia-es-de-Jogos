@@ -1,6 +1,5 @@
 """Padrões da issue #2. A integração às rotas é responsabilidade do backend."""
 from copy import deepcopy
-from math import isfinite
 from statistics import mean
 
 from servidor.storage.repositorio_json import validar_metadados
