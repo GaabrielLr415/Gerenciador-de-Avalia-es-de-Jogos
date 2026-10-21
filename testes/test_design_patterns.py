@@ -4,7 +4,9 @@ from pathlib import Path
 from tempfile import TemporaryDirectory
 from unittest.mock import Mock, patch
 
-from servidor.patterns import AvaliacaoBuilder, ServicoAvaliacoes, AvaliacoesProxy
+from servidor.patterns import (
+    AvaliacaoBuilder, ServicoAvaliacoes, AvaliacoesProxy, AutorizacaoError, EventosAvaliacoes,
+)
 from servidor.storage.repositorio_json import RepositorioJSON
 
 
@@ -77,9 +79,9 @@ class TestPadroes(unittest.TestCase):
     def test_t93_outro_ator_bloqueado_sem_gravacao(self):
         av = self.publicar()
         antes = self.arquivos()
-        with self.assertRaises(PermissionError):
+        with self.assertRaises(AutorizacaoError):
             self.outro.editar(av['id'], {'nota': 1, 'autor_id': 8, 'moderador': True})
-        with self.assertRaises(PermissionError):
+        with self.assertRaises(AutorizacaoError):
             self.outro.excluir(av['id'])
         self.assertEqual(self.arquivos(), antes)
 
@@ -113,11 +115,30 @@ class TestPadroes(unittest.TestCase):
                 self.publicar()
         observador.atualizar.assert_not_called()
 
+    def test_falha_de_um_observador_nao_interrompe_persistencia_ou_demais_observadores(self):
+        eventos = EventosAvaliacoes()
+        falho = Mock()
+        falho.atualizar.side_effect = RuntimeError('Observador indisponível')
+        eventos.inscrever(falho)
+        servico = ServicoAvaliacoes(self.repo, eventos)
+        seguinte = Mock()
+        eventos.inscrever(seguinte)
+
+        with self.assertLogs('servidor.patterns.avaliacoes', level='ERROR') as logs:
+            avaliacao = servico.publicar(self.jogo['id'], {'autor_id': 7, 'nota': 8})
+
+        self.assertIn('Observador indisponível', '\n'.join(logs.output))
+        self.assertEqual(self.repo.buscar_avaliacao(avaliacao['id']), avaliacao)
+        self.assertEqual(len(self.repo.listar_avaliacoes(self.jogo['id'])), 1)
+        falho.atualizar.assert_called_once_with(self.jogo['id'])
+        seguinte.atualizar.assert_called_once_with(self.jogo['id'])
+        self.assertEqual(servico.media._resultados[self.jogo['id']]['media'], 8)
+
     def test_ator_invalido_e_autoria_falsa(self):
         for ator in (None, True, 0, -1, '7'):
-            with self.subTest(ator=ator), self.assertRaises(PermissionError):
+            with self.subTest(ator=ator), self.assertRaises(AutorizacaoError):
                 AvaliacoesProxy(self.servico, ator)
-        with self.assertRaises(PermissionError):
+        with self.assertRaises(AutorizacaoError):
             self.autor.publicar(self.jogo['id'], {'nota': 8, 'autor_id': 9})
 
     def test_registros_inexistentes(self):

@@ -101,6 +101,76 @@ class IntegracaoPadroesHTTP(unittest.TestCase):
         self.assertEqual(self.client.delete(rota, headers={'X-Ator-Id':'42'}).status_code, 200)
         self.assertIsNone(self.client.get(self.media).get_json()['media'])
 
+    def test_falha_do_observer_apos_publicar_mantem201_e_um_unico_registro(self):
+        servico = self.api.obter_servico()
+        with patch.object(servico.media, 'atualizar', side_effect=OSError('Falha na média')):
+            with self.assertLogs('servidor.patterns.avaliacoes', level='ERROR'):
+                resposta = self.client.post(self.rota, json={'autor_id': 7, 'nota': 8})
+
+        self.assertEqual(resposta.status_code, 201)
+        avaliacao = resposta.get_json()
+        reiniciado = storage.RepositorioJSON(self.raiz/'jogos.json', self.raiz/'avaliacoes.json')
+        self.assertEqual(reiniciado.listar_avaliacoes(self.jogo_id), [avaliacao])
+        self.assertEqual(self.client.get(self.media).get_json(), {
+            'jogo_id': self.jogo_id, 'quantidade': 1, 'media': 8,
+        })
+
+    def test_falha_do_observer_apos_editar_mantem200_e_dados_salvos(self):
+        avaliacao = self.publicar(4)
+        self.publicar(8)
+        servico = self.api.obter_servico()
+        with patch.object(servico.media, 'atualizar', side_effect=PermissionError('Falha na média')):
+            with self.assertLogs('servidor.patterns.avaliacoes', level='ERROR'):
+                resposta = self.client.put(f"/avaliacoes/{avaliacao['id']}",
+                    headers={'X-Ator-Id': '7'}, json={'nota': 10})
+
+        self.assertEqual(resposta.status_code, 200)
+        reiniciado = storage.RepositorioJSON(self.raiz/'jogos.json', self.raiz/'avaliacoes.json')
+        self.assertEqual(reiniciado.buscar_avaliacao(avaliacao['id']), resposta.get_json())
+        self.assertEqual(resposta.get_json()['nota'], 10)
+        self.assertEqual(self.client.get(self.media).get_json(), {
+            'jogo_id': self.jogo_id, 'quantidade': 2, 'media': 9,
+        })
+
+    def test_falha_do_observer_apos_excluir_mantem200_e_exclusao_persistida(self):
+        avaliacao = self.publicar()
+        servico = self.api.obter_servico()
+        with patch.object(servico.media, 'atualizar', side_effect=RuntimeError('Falha na média')):
+            with self.assertLogs('servidor.patterns.avaliacoes', level='ERROR'):
+                resposta = self.client.delete(f"/avaliacoes/{avaliacao['id']}",
+                    headers={'X-Ator-Id': '7'})
+
+        self.assertEqual(resposta.status_code, 200)
+        reiniciado = storage.RepositorioJSON(self.raiz/'jogos.json', self.raiz/'avaliacoes.json')
+        self.assertIsNone(reiniciado.buscar_avaliacao(avaliacao['id']))
+        self.assertEqual(self.client.get(self.media).get_json(), {
+            'jogo_id': self.jogo_id, 'quantidade': 0, 'media': None,
+        })
+
+    def test_falha_na_persistencia_retorna500_sem_notificar_ou_alterar_dados(self):
+        avaliacao = self.publicar()
+        servico = self.api.obter_servico()
+        antes = {p.name: p.read_bytes() for p in self.raiz.iterdir()}
+        casos = (
+            ('POST', self.rota, 'criar_avaliacao', {'autor_id': 7, 'nota': 9}),
+            ('PUT', f"/avaliacoes/{avaliacao['id']}", 'atualizar_avaliacao', {'nota': 9}),
+            ('DELETE', f"/avaliacoes/{avaliacao['id']}", 'excluir_avaliacao', None),
+        )
+        for metodo, rota, operacao, corpo in casos:
+            with self.subTest(metodo=metodo):
+                with patch.object(self.repo, operacao, side_effect=OSError('Disco indisponível')):
+                    with patch.object(servico.eventos, 'notificar') as evento:
+                        with self.assertLogs(self.api.app.logger, level='ERROR'):
+                            resposta = self.client.open(rota, method=metodo,
+                                headers={'X-Ator-Id': '7'}, json=corpo)
+                self.assertEqual(resposta.status_code, 500)
+                self.assertEqual(resposta.get_json(), {
+                    'erro': 'Erro interno do servidor',
+                    'detalhes': 'Não foi possível concluir a operação.',
+                })
+                evento.assert_not_called()
+                self.assertEqual({p.name: p.read_bytes() for p in self.raiz.iterdir()}, antes)
+
 
 if __name__ == '__main__':
     unittest.main()

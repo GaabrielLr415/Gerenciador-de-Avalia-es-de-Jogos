@@ -17,7 +17,7 @@ from servidor.storage.repositorio_json import (
     validar_metadados,
 )
 
-from servidor.patterns import ServicoAvaliacoes, AvaliacoesProxy
+from servidor.patterns import ServicoAvaliacoes, AvaliacoesProxy, AutorizacaoError
 
 app = Flask(__name__)
 # IDs fictícios para demonstrar o Proxy, sem autenticação.
@@ -44,15 +44,15 @@ def obter_servico():
 def obter_proxy():
     identificacao = request.headers.get("X-Ator-Id", "")
     if not identificacao.isascii() or not identificacao.isdecimal():
-        raise PermissionError("Informe X-Ator-Id com um inteiro positivo.")
+        raise AutorizacaoError("Informe X-Ator-Id com um inteiro positivo.")
     # Limita a conversão de valores arbitrariamente longos.
     if len(identificacao) > 10 or int(identificacao) > 2147483647:
-        raise PermissionError("Identificação local fora do intervalo permitido.")
+        raise AutorizacaoError("Identificação local fora do intervalo permitido.")
     return AvaliacoesProxy(obter_servico(), int(identificacao),
                            app.config["MODERADORES_IDS"])
 
 
-@app.errorhandler(PermissionError)
+@app.errorhandler(AutorizacaoError)
 def tratar_permissao(excecao):
     return erro(str(excecao), 403)
 

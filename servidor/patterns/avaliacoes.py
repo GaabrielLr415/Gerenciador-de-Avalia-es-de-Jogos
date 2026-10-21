@@ -1,8 +1,15 @@
 """Padrões da issue #2. A integração às rotas é responsabilidade do backend."""
 from copy import deepcopy
+import logging
 from statistics import mean
 
 from servidor.storage.repositorio_json import validar_metadados
+
+logger = logging.getLogger(__name__)
+
+
+class AutorizacaoError(PermissionError):
+    """Identificação local inválida ou operação não autorizada pelo Proxy."""
 
 
 class AvaliacaoBuilder:
@@ -65,7 +72,14 @@ class EventosAvaliacoes:
 
     def notificar(self, jogo_id):
         for observador in tuple(self._observadores):
-            observador.atualizar(jogo_id)
+            try:
+                observador.atualizar(jogo_id)
+            except Exception:
+                # A gravação já terminou; um observador não pode transformar o sucesso em erro.
+                logger.exception(
+                    "Falha ao atualizar o observador %s do jogo %s.",
+                    type(observador).__name__, jogo_id,
+                )
 
 
 class NotaMediaObserver:
@@ -142,7 +156,7 @@ class AvaliacoesProxy:
 
     def __init__(self, servico, ator_id, moderadores=()):
         if type(ator_id) is not int or ator_id <= 0:
-            raise PermissionError("Informe uma identificação local válida.")
+            raise AutorizacaoError("Informe uma identificação local válida.")
         moderadores = tuple(moderadores)
         if any(type(i) is not int or i <= 0 for i in moderadores):
             raise ValueError("IDs de moderadores devem ser inteiros positivos.")
@@ -156,15 +170,15 @@ class AvaliacoesProxy:
         autor = atual.get("autor_id")
         # Mantém a regra existente para avaliações legadas sem autor.
         if type(autor) is not int or autor <= 0:
-            raise PermissionError("Avaliação sem autor identificado não pode ser alterada.")
+            raise AutorizacaoError("Avaliação sem autor identificado não pode ser alterada.")
         if self.ator_id != autor and self.ator_id not in self.moderadores:
-            raise PermissionError("Somente o autor ou moderador pode alterar a avaliação.")
+            raise AutorizacaoError("Somente o autor ou moderador pode alterar a avaliação.")
 
     def publicar(self, jogo_id, dados):
         if not isinstance(dados, dict):
             raise ValueError("Envie os dados da avaliação em JSON.")
         if "autor_id" in dados and dados["autor_id"] != self.ator_id:
-            raise PermissionError("O autor deve corresponder à identificação local.")
+            raise AutorizacaoError("O autor deve corresponder à identificação local.")
         return self.servico.publicar(jogo_id, {**dados, "autor_id": self.ator_id})
 
     def editar(self, avaliacao_id, dados):
