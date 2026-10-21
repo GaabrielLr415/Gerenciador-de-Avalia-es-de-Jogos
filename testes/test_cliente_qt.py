@@ -100,6 +100,7 @@ class ClienteQtTestes(unittest.TestCase):
         self.preencher_jogo(formulario)
         QTest.mouseClick(formulario.botao_salvar, Qt.MouseButton.LeftButton)
         self.aguardar_http()
+        self.assertEqual(self.janela.sucesso.text(), "Jogo cadastrado com sucesso.")
         jogo_id = self.janela.jogo["id"]
         self.assertEqual(self.janela.titulo.text(), "Hollow Knight")
         self.janela.abrir_detalhes()
@@ -109,6 +110,7 @@ class ClienteQtTestes(unittest.TestCase):
         QTest.mouseClick(formulario.botao_salvar, Qt.MouseButton.LeftButton)
         self.aguardar_http()
         self.assertEqual(self.repo.buscar_jogo(jogo_id)["nome"], "Hollow Knight — edição")
+        self.assertEqual(self.janela.sucesso.text(), "Jogo atualizado com sucesso.")
 
         QTest.mouseClick(self.janela.nova_avaliacao, Qt.MouseButton.LeftButton)
         formulario = self.janela.dialogo
@@ -125,6 +127,8 @@ class ClienteQtTestes(unittest.TestCase):
         self.assertEqual(avaliacao["nota"], 9.5)
         self.assertEqual(avaliacao["autor_id"], 7)
         self.assertIn("9,50 / 10", self.janela.media.text())
+        self.assertEqual(self.janela.sucesso_detalhes.text(), "Avaliação publicada com sucesso.")
+        self.assertTrue(self.janela.sucesso_detalhes.isVisible())
 
         # Editar no cliente deve preservar metadados existentes no servidor.
         self.repo.atualizar_avaliacao(avaliacao["id"], {"nota": 9.5, "metadados": {"origem": "teste"}})
@@ -143,6 +147,7 @@ class ClienteQtTestes(unittest.TestCase):
         self.assertEqual(atualizada["nota"], 0)
         self.assertEqual(atualizada["metadados"], {"origem": "teste"})
         self.assertIn("0,00 / 10", self.janela.media.text())
+        self.assertEqual(self.janela.sucesso.text(), "Avaliação atualizada com sucesso.")
         self.janela.tabela.setCurrentCell(0, 0)
         with patch.object(self.janela, "_confirmar", return_value=False):
             self.janela.remover_avaliacao()
@@ -151,6 +156,7 @@ class ClienteQtTestes(unittest.TestCase):
             self.janela.remover_avaliacao()
         self.aguardar_http()
         self.assertEqual(self.janela.tabela.rowCount(), 0)
+        self.assertEqual(self.janela.sucesso.text(), "Avaliação excluída com sucesso.")
         self.assertEqual(self.janela.media.text(), "Ainda sem avaliações")
         # A exclusão do jogo também deve atualizar a biblioteca vazia.
         self.repo.criar_avaliacao(jogo_id, {"autor_id": 7, "nota": 10})
@@ -159,6 +165,8 @@ class ClienteQtTestes(unittest.TestCase):
         self.aguardar_http()
         self.assertEqual(self.janela.lista.count(), 0)
         self.assertEqual(self.repo.listar_avaliacoes(jogo_id), [])
+        self.assertEqual(self.janela.sucesso.text(), "Jogo excluído com sucesso.")
+        self.assertTrue(self.janela.sucesso.isVisible())
 
     def test_falha_de_rede_preserva_formulario_e_permite_cancelar(self):
         self.parar_servidor()
@@ -347,6 +355,8 @@ class ClienteQtTestes(unittest.TestCase):
         self.aguardar_http()
         self.assertTrue(formulario.isVisible())
         self.assertIn("403", formulario.erro.text())
+        self.assertTrue(self.janela.sucesso.isHidden())
+        self.assertEqual(self.janela.sucesso.text(), "")
         self.assertEqual(self.repo.buscar_avaliacao(av["id"])["nota"], 8)
         formulario.reject()
         self.janela.ator_local.setValue(99)
