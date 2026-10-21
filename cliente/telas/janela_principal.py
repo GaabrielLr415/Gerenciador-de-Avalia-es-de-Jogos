@@ -71,6 +71,9 @@ class JanelaPrincipal(QMainWindow):
         self.botao_atualizar.clicked.connect(self.atualizar)
         cabecalho.addWidget(self.botao_atualizar)
         layout.addLayout(cabecalho)
+        self.sucesso = rotulo()
+        self.sucesso.hide()
+        layout.addWidget(self.sucesso)
         self.erro = rotulo(estilo="erro")
         self.erro.hide()
         layout.addWidget(self.erro)
@@ -147,6 +150,9 @@ class JanelaPrincipal(QMainWindow):
         direita.setSpacing(10)
         self.titulo = rotulo(estilo="titulo")
         direita.addWidget(self.titulo)
+        self.sucesso_detalhes = rotulo()
+        self.sucesso_detalhes.hide()
+        direita.addWidget(self.sucesso_detalhes)
         self.informacoes = rotulo(estilo="subtitulo")
         direita.addWidget(self.informacoes)
         self.descricao = QPlainTextEdit()
@@ -449,7 +455,22 @@ class JanelaPrincipal(QMainWindow):
         self.aviso_autor.setText(
             "Esta avaliação antiga não tem autor identificado. O servidor bloqueia sua edição e exclusão individual.")
 
+    def _limpar_sucesso(self):
+        self.sucesso.clear()
+        self.sucesso.hide()
+        self.sucesso_detalhes.clear()
+        self.sucesso_detalhes.hide()
+
+    def _operacao_concluida(self, mensagem, selecionar_id=None):
+        # Confirma somente após resposta de sucesso. O recarregamento e suas
+        # mensagens de status não apagam a confirmação da gravação realizada.
+        for aviso in (self.sucesso, self.sucesso_detalhes):
+            aviso.setText(mensagem)
+            aviso.show()
+        self.atualizar(selecionar_id=selecionar_id)
+
     def _abrir_formulario(self, formulario, ao_salvar):
+        self._limpar_sucesso()
         if self.janela_detalhes.isVisible() and formulario.parent() is self:
             formulario.setParent(self.janela_detalhes, formulario.windowFlags())
         self.dialogo = formulario
@@ -457,18 +478,19 @@ class JanelaPrincipal(QMainWindow):
         formulario.finished.connect(lambda _: formulario.deleteLater())
         formulario.open()
 
-    def _jogo_salvo(self, jogo):
+    def _jogo_salvo(self, jogo, mensagem):
         if jogo.get("capa_url"):
             self.preferencias.remove(f"capas/{jogo['id']}")
         self._busca_timer.stop()
         with QSignalBlocker(self.busca):
             self.busca.clear()
-        self.atualizar(selecionar_id=jogo["id"])
+        self._operacao_concluida(mensagem, selecionar_id=jogo["id"])
 
     def adicionar_jogo(self):
         if not self.executor.ocupado:
             self._abrir_formulario(FormularioJogo(
-                self.executor, self.api.cadastrar_jogo, parent=self), self._jogo_salvo)
+                self.executor, self.api.cadastrar_jogo, parent=self),
+                lambda jogo: self._jogo_salvo(jogo, "Jogo cadastrado com sucesso."))
 
     def abrir_edicao_jogo(self):
         if self.jogo and not self.executor.ocupado:
@@ -476,7 +498,7 @@ class JanelaPrincipal(QMainWindow):
             self._abrir_formulario(FormularioJogo(
                 self.executor, lambda dados: self.api.editar_jogo(
                     jogo["id"], dados), jogo, self,
-            ), self._jogo_salvo)
+            ), lambda jogo: self._jogo_salvo(jogo, "Jogo atualizado com sucesso."))
 
     def _confirmar(self, titulo, texto):
         caixa = QMessageBox(self)
@@ -498,8 +520,10 @@ class JanelaPrincipal(QMainWindow):
             return
         jogo = self.jogo.copy()
         if self._confirmar("Excluir jogo", f"Excluir “{jogo['nome']}” e todas as suas avaliações? Esta ação não pode ser desfeita."):
+            self._limpar_sucesso()
             self.executor.executar(lambda: self.api.excluir_jogo(
-                jogo["id"]), lambda _: self.atualizar(), self._falha)
+                jogo["id"]), lambda _: self._operacao_concluida(
+                    "Jogo excluído com sucesso."), self._falha)
 
     def adicionar_avaliacao(self):
         if self.dialogo is not None:
@@ -519,7 +543,8 @@ class JanelaPrincipal(QMainWindow):
             formulario.autor.valueChanged.connect(self.ator_local.setValue)
             formulario.setWindowTitle(f"Avaliar — {self.jogo['nome']}")
             formulario.layout_principal.insertWidget(1, rotulo(self.jogo["nome"], "titulo"))
-            self._abrir_formulario(formulario, lambda _: self.atualizar(selecionar_id=jogo_id))
+            self._abrir_formulario(formulario, lambda _: self._operacao_concluida(
+                "Avaliação publicada com sucesso.", selecionar_id=jogo_id))
 
     def abrir_edicao_avaliacao(self):
         avaliacao = self.avaliacao_selecionada()
@@ -527,15 +552,17 @@ class JanelaPrincipal(QMainWindow):
             self._abrir_formulario(FormularioAvaliacao(
                 self.executor, lambda dados: self.api.editar_avaliacao(
                     avaliacao["id"], dados), avaliacao, self,
-            ), lambda _: self.atualizar())
+            ), lambda _: self._operacao_concluida("Avaliação atualizada com sucesso."))
 
     def remover_avaliacao(self):
         avaliacao = self.avaliacao_selecionada()
         if not avaliacao or not self.excluir_avaliacao.isEnabled() or self.executor.ocupado:
             return
         if self._confirmar("Excluir avaliação", "Excluir a avaliação selecionada? Esta ação não pode ser desfeita."):
+            self._limpar_sucesso()
             self.executor.executar(lambda: self.api.excluir_avaliacao(
-                avaliacao["id"]), lambda _: self.atualizar(), self._falha)
+                avaliacao["id"]), lambda _: self._operacao_concluida(
+                    "Avaliação excluída com sucesso."), self._falha)
 
     def closeEvent(self, evento):
         if self.executor.ocupado:
