@@ -11,7 +11,7 @@ from PySide6.QtWidgets import (
 )
 
 from cliente.services.tarefas import ExecutorHTTP
-from cliente.telas.avisos import AvisoErro
+from cliente.telas.avisos import AvisoErro, EstadoColecao
 from cliente.telas.cards import AvaliacoesDelegate, CardsDelegate, GradeJogos
 from cliente.telas.detalhes import DialogoDetalhes
 from cliente.telas.formularios import FormularioAvaliacao, FormularioJogo
@@ -34,6 +34,7 @@ class JanelaPrincipal(QMainWindow):
         self.api = api
         self.executor = ExecutorHTTP(self)
         self._jogos = []
+        self._erro_catalogo = None
         self._avaliacoes = []
         self._minhas = []
         self._aba_minhas = False
@@ -68,7 +69,7 @@ class JanelaPrincipal(QMainWindow):
         self.barra_superior.setObjectName("barra_superior")
         cabecalho = QGridLayout(self.barra_superior)
         cabecalho.setContentsMargins(20, 14, 20, 14)
-        cabecalho.setSpacing(10)
+        cabecalho.setSpacing(24)
         cabecalho.setColumnStretch(0, 1)
         cabecalho.setColumnStretch(2, 1)
         identidade_widget = QWidget()
@@ -85,7 +86,7 @@ class JanelaPrincipal(QMainWindow):
         acoes = QHBoxLayout(acoes_cabecalho)
         acoes.setContentsMargins(0, 0, 0, 0)
         acoes.setSpacing(10)
-        cabecalho.addWidget(acoes_cabecalho, 0, 2)
+        cabecalho.addWidget(acoes_cabecalho, 0, 2, Qt.AlignmentFlag.AlignRight)
         pasta_imagens = Path(__file__).resolve().parents[2] / "imagem"
         caminho_logo = next((pasta_imagens / nome for nome in
                              ("logo.svg", "logo techgamer.svg.svg", "logo.png",
@@ -196,10 +197,9 @@ class JanelaPrincipal(QMainWindow):
         titulo_colecao.addStretch()
         self.busca = QLineEdit()
         self.busca.setObjectName("busca_jogos")
-        self.busca.setPlaceholderText("PROCURAR JOGO")
+        self.busca.setPlaceholderText("Procurar jogo")
         self.busca.setToolTip("Buscar por nome, gênero ou plataforma")
-        self.busca.setMinimumWidth(220)
-        self.busca.setMaximumWidth(520)
+        self.busca.setFixedWidth(260)
         self.busca.setFixedHeight(46)
         svg_lupa = b'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="#d4d7de" stroke-width="2"><circle cx="10" cy="10" r="6"/><path d="m14.5 14.5 6 6"/></svg>'
         try:
@@ -311,12 +311,16 @@ class JanelaPrincipal(QMainWindow):
         self.lista.itemActivated.connect(self.abrir_avaliacoes_card)
         self.lista.setAccessibleName("Jogos")
         esquerda.addWidget(self.lista, 1)
-        self.sem_resultados = rotulo(
-            "Sua coleção começa aqui. Adicione seu primeiro jogo.", "estado_vazio")
-        self.sem_resultados.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        self.sem_resultados.setMinimumHeight(90)
+        self.sem_resultados = EstadoColecao()
+        self.sem_resultados.configurar("vazio", "Sua próxima aventura começa aqui",
+            "Adicione seu primeiro jogo para começar sua coleção e publicar avaliações.", "Adicionar jogo")
+        self.sem_resultados.botao.clicked.connect(self._acao_estado_colecao)
         esquerda.addWidget(self.sem_resultados, 1)
         self.paginacao = Paginacao(12)
+        politica = self.paginacao.sizePolicy()
+        politica.setRetainSizeWhenHidden(True)
+        self.paginacao.setSizePolicy(politica)
+        self.lista.capacidade_alterada.connect(self._ajustar_capacidade_biblioteca)
         self.paginacao.alterada.connect(lambda _: self._preencher_biblioteca())
         esquerda.addWidget(self.paginacao)
         self.novo_jogo = QPushButton("+ Adicionar jogo")
@@ -395,6 +399,18 @@ class JanelaPrincipal(QMainWindow):
         layout.addLayout(botoes)
         self.conteudo_paginas.addWidget(pagina)
         self._preencher_minhas()
+
+    def _ajustar_capacidade_biblioteca(self, capacidade):
+        inicio = (self.paginacao.pagina - 1) * self.paginacao.por_pagina
+        self.paginacao.por_pagina = capacidade
+        self.paginacao.pagina = inicio // capacidade + 1
+        self._preencher_biblioteca()
+
+    def resizeEvent(self, evento):
+        super().resizeEvent(evento)
+        if hasattr(self, "busca"):
+            # Reserva espaço para a navegação central nas janelas compactas.
+            self.busca.setFixedWidth(max(150, min(260, 150 + (self.width() - 900) // 2)))
 
     def _atualizar_perfil_visual(self):
         conectado = self.perfil is not None
@@ -699,15 +715,39 @@ class JanelaPrincipal(QMainWindow):
         self.lista_minhas.setEnabled(not ocupado)
         self.paginacao_minhas.setEnabled(not ocupado)
         self.novo_jogo.setEnabled(not ocupado)
+        self.sem_resultados.botao.setEnabled(not ocupado)
         self.botao_filtros.setEnabled(not ocupado)
         self._selecionar_minha()
         self.janela_detalhes.ocupar(ocupado)
         if ocupado:
             self.statusBar().showMessage("Aguarde, consultando o servidor…")
 
+    def _acao_estado_colecao(self):
+        if self.executor.ocupado:
+            return
+        if self.sem_resultados.modo == "erro":
+            self.atualizar()
+        elif self.sem_resultados.modo == "busca":
+            self._abrir_biblioteca()
+        else:
+            self.adicionar_jogo()
+
+    def _estado_erro_catalogo(self, mensagem):
+        self.lista.hide()
+        self.paginacao.hide()
+        self.sem_resultados.configurar("erro", "Não conseguimos carregar os jogos",
+            "Confira se o servidor está aberto e tente novamente.\n" + mensagem,
+            "Tentar novamente")
+        self.sem_resultados.show()
+
     def _falha(self, mensagem):
         self.erro.setText(mensagem)
-        self.erro.show()
+        if not self._aba_minhas and not self._jogos:
+            self._erro_catalogo = mensagem
+            self.erro.hide()
+            self._estado_erro_catalogo(mensagem)
+        else:
+            self.erro.show()
         self.conexao.setText("Falha na operação")
         self.statusBar().showMessage(
             "Confira o servidor e use Atualizar para tentar novamente.")
@@ -737,6 +777,7 @@ class JanelaPrincipal(QMainWindow):
         )
 
     def _receber_jogos(self, jogos, selecionar_id):
+        self._erro_catalogo = None
         self._jogos = jogos
         for combo, campo, titulo in ((self.filtro_genero, "genero", "Gênero"),
                                      (self.filtro_plataforma, "plataforma", "Plataforma"),
@@ -806,7 +847,7 @@ class JanelaPrincipal(QMainWindow):
                 visual["capa_local"] = self.preferencias.value(
                     f"capas/{jogo['id']}", "")
                 item.setData(Qt.ItemDataRole.UserRole + 1, visual)
-                item.setSizeHint(QSize(max(1, self.lista.gridSize().width() - 10), 306))
+                item.setSizeHint(self.lista.tamanho_card())
                 if jogo["id"] == selecionar_id:
                     selecionado = item
             if jogos:
@@ -814,9 +855,17 @@ class JanelaPrincipal(QMainWindow):
         self.total_jogos.setText(f"{len(jogos)} de {len(self._jogos)} jogos")
         self.lista.setVisible(bool(jogos))
         self.sem_resultados.setVisible(not jogos)
-        self.sem_resultados.setText(
-            "Nenhum jogo encontrado. Tente outro nome, gênero ou plataforma."
-            if termo or genero or plataforma or ano else "Sua coleção começa aqui. Adicione seu primeiro jogo.")
+        if not jogos:
+            if self._erro_catalogo and not self._jogos:
+                self._estado_erro_catalogo(self._erro_catalogo)
+            elif termo or genero or plataforma or ano:
+                self.sem_resultados.configurar("busca", "Nenhum jogo encontrado",
+                    "Não encontramos jogos com essa busca e esses filtros. Limpe a seleção ou tente outro nome.",
+                    "Limpar busca e filtros")
+            else:
+                self.sem_resultados.configurar("vazio", "Sua próxima aventura começa aqui",
+                    "Adicione seu primeiro jogo para começar sua coleção e publicar avaliações.",
+                    "Adicionar jogo")
         self._selecionar_jogo()
 
     def _selecionar_jogo(self, *_args):

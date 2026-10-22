@@ -2,7 +2,7 @@
 from hashlib import sha256
 import math
 
-from PySide6.QtCore import QPointF, QRectF, QSize, Qt, QUrl, Signal
+from PySide6.QtCore import QPointF, QRectF, QSize, Qt, QTimer, QUrl, Signal
 from PySide6.QtGui import QColor, QFont, QLinearGradient, QPainter, QPainterPath, QPen, QPixmap
 from PySide6.QtWidgets import QListWidget, QStyledItemDelegate, QStyle
 from PySide6.QtNetwork import QNetworkAccessManager, QNetworkReply, QNetworkRequest
@@ -10,16 +10,59 @@ from PySide6.QtNetwork import QNetworkAccessManager, QNetworkReply, QNetworkRequ
 from cliente.telas.estrelas import nota_em_meias_estrelas
 
 
+def desenhar_capa_preenchida(painter, imagem, area):
+    """Mostra a capa inteira sobre um fundo suave da própria imagem."""
+    if imagem.isNull() or area.isEmpty():
+        return area
+    painter.save()
+    painter.setClipRect(area, Qt.ClipOperation.IntersectClip)
+    painter.setRenderHint(QPainter.RenderHint.SmoothPixmapTransform)
+    fundo = imagem.scaled(12, 12, Qt.AspectRatioMode.IgnoreAspectRatio,
+                          Qt.TransformationMode.SmoothTransformation)
+    painter.drawPixmap(area, fundo, QRectF(fundo.rect()))
+    painter.fillRect(area, QColor(0, 0, 0, 65))
+    fator = min(area.width() / imagem.width(), area.height() / imagem.height())
+    destino = QRectF(0, 0, imagem.width() * fator, imagem.height() * fator)
+    destino.moveCenter(area.center())
+    painter.drawPixmap(destino, imagem, QRectF(imagem.rect()))
+    painter.restore()
+    return destino
+
+
 class GradeJogos(QListWidget):
-    """Distribui as colunas pela largura disponível, mantendo o espaço entre capas."""
+    """Ajusta as células e a capacidade da página ao espaço disponível."""
+
+    capacidade_alterada = Signal(int)
+
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.capacidade = 12
+        self._ajuste = QTimer(self)
+        self._ajuste.setSingleShot(True)
+        self._ajuste.timeout.connect(self._ajustar_grade)
 
     def resizeEvent(self, evento):
         super().resizeEvent(evento)
-        largura = self.viewport().width()
-        coluna = largura // max(1, largura // 188)
-        self.setGridSize(QSize(coluna, 316))
+        self._ajuste.start(0)
+
+    def _ajustar_grade(self):
+        margem = 2 * self.spacing()
+        largura = max(1, self.viewport().width() - margem)
+        altura = max(1, self.viewport().height() - margem)
+        colunas = max(1, largura // 188)
+        linhas = max(1, altura // 280)
+        celula = QSize(largura // colunas, max(280, altura // linhas))
+        self.setGridSize(celula)
         for indice in range(self.count()):
-            self.item(indice).setSizeHint(QSize(max(1, coluna - 10), 306))
+            self.item(indice).setSizeHint(self.tamanho_card())
+        capacidade = colunas * linhas
+        if capacidade != self.capacidade:
+            self.capacidade = capacidade
+            self.capacidade_alterada.emit(capacidade)
+
+    def tamanho_card(self):
+        return QSize(max(1, self.gridSize().width() - 10),
+                     max(270, self.gridSize().height() - 10))
 
 
 class CardsDelegate(QStyledItemDelegate):
@@ -62,7 +105,7 @@ class CardsDelegate(QStyledItemDelegate):
             else:
                 mensagem = resposta.errorString()
             if not imagem.isNull():
-                imagem = imagem.scaled(360, 440, Qt.AspectRatioMode.KeepAspectRatioByExpanding, Qt.TransformationMode.SmoothTransformation)
+                imagem = imagem.scaled(360, 440, Qt.AspectRatioMode.KeepAspectRatio, Qt.TransformationMode.SmoothTransformation)
             else:
                 self._falhas.add(url)
                 self.falha_capa.emit(url, mensagem)
@@ -80,7 +123,7 @@ class CardsDelegate(QStyledItemDelegate):
     def obter_capa(self, jogo, caminho=""):
         if caminho and caminho not in self._capas:
             self._capas[caminho] = QPixmap(caminho).scaled(
-                360, 440, Qt.AspectRatioMode.KeepAspectRatioByExpanding,
+                360, 440, Qt.AspectRatioMode.KeepAspectRatio,
                 Qt.TransformationMode.SmoothTransformation)
         imagem = self._capas.get(caminho)
         if (imagem is None or imagem.isNull()) and jogo.get("capa_url"):
@@ -97,13 +140,12 @@ class CardsDelegate(QStyledItemDelegate):
         path.addRoundedRect(r, 10, 10)
         painter.setClipPath(path)
         painter.fillRect(r, QColor("#373d48"))
-        capa = QRectF(r.x(), r.y(), r.width(), 210)
+        altura_capa = max(1, r.height() - 92)
+        capa = QRectF(r.x(), r.y(), r.width(), altura_capa)
         caminho = jogo.get("capa_local", "")
         imagem = self.obter_capa(jogo, caminho)
         if imagem is not None and not imagem.isNull():
-            imagem = imagem.scaled(capa.size().toSize(), Qt.AspectRatioMode.KeepAspectRatioByExpanding, Qt.TransformationMode.SmoothTransformation)
-            origem = QRectF((imagem.width()-capa.width())/2, (imagem.height()-capa.height())/2, capa.width(), capa.height())
-            painter.drawPixmap(capa, imagem, origem)
+            desenhar_capa_preenchida(painter, imagem, capa)
         else:
             tom = int(sha256(jogo.get("nome", "").encode()).hexdigest()[:4], 16) % 360
             gradiente = QLinearGradient(capa.topLeft(), capa.bottomRight())
@@ -118,11 +160,11 @@ class CardsDelegate(QStyledItemDelegate):
             painter.drawText(capa.adjusted(14, 20, -14, -28), Qt.AlignmentFlag.AlignBottom | Qt.TextFlag.TextWordWrap, jogo.get("nome", ""))
         painter.setPen(QColor("#f6f7fb"))
         painter.setFont(QFont("Segoe UI", 9, QFont.Weight.Bold))
-        painter.drawText(QRectF(r.x()+12, r.y()+224, r.width()-66, 48), Qt.TextFlag.TextWordWrap, jogo.get("nome", ""))
+        painter.drawText(QRectF(r.x()+12, r.y()+altura_capa+14, r.width()-66, 48), Qt.TextFlag.TextWordWrap, jogo.get("nome", ""))
         painter.setFont(QFont("Segoe UI", 9))
         painter.setPen(QColor("#c0c6d0"))
         painter.drawText(QRectF(r.x()+12, r.bottom()-27, 110, 20), str(jogo.get("ano_lancamento", "")))
-        circulo = QRectF(r.right()-52, r.y()+230, 40, 40)
+        circulo = QRectF(r.right()-52, r.y()+altura_capa+20, 40, 40)
         nota = jogo.get("media")
         painter.setPen(QPen(QColor("#4b535f"), 4))
         painter.drawEllipse(circulo)
@@ -164,11 +206,7 @@ class AvaliacoesDelegate(CardsDelegate):
             self._carregar_link(jogo["capa_url"])
             imagem = self._capas.get(jogo["capa_url"])
         if imagem is not None and not imagem.isNull():
-            redimensionada = imagem.scaled(capa.size().toSize(), Qt.AspectRatioMode.KeepAspectRatioByExpanding,
-                                          Qt.TransformationMode.SmoothTransformation)
-            origem = QRectF((redimensionada.width() - capa.width()) / 2,
-                            (redimensionada.height() - capa.height()) / 2, capa.width(), capa.height())
-            painter.drawPixmap(capa, redimensionada, origem)
+            desenhar_capa_preenchida(painter, imagem, capa)
         else:
             painter.fillRect(capa, QColor("#45404c"))
             painter.setPen(QColor("#ffb3a7"))

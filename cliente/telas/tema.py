@@ -33,6 +33,11 @@ QMenu::item { padding: 9px 16px; border-radius: 6px; }
 QMenu::item:selected { background: #75473f; color: #ffffff; }
 QMenu::item:disabled { color: #cbd0da; }
 QMenu::separator { height: 1px; background: #596271; margin: 5px; }
+QFrame#estado_colecao {
+    background: #2c313b; border: 1px solid #424a58; border-radius: 16px;
+}
+QFrame#estado_colecao QLabel { background: transparent; color: #b8c0ce; }
+QFrame#estado_colecao QLabel#titulo_estado { color: #f5f6f8; font-size: 17pt; font-weight: 600; }
 QWidget#biblioteca { background: transparent; }
 QLabel#media { color: #c6ef85; font-size: 18pt; font-weight: 600; }
 QLabel#erro {
@@ -52,8 +57,8 @@ QLineEdit, QPlainTextEdit, QSpinBox, QDoubleSpinBox, QComboBox {
 QLineEdit { min-height: 24px; }
 QLineEdit#busca_jogos {
     background: #2c313a; border: 1px solid transparent; border-radius: 13px;
-    padding: 8px 16px; font-family: 'Impact', 'Bahnschrift SemiCondensed', 'Segoe UI';
-    font-size: 14pt; font-weight: 700; placeholder-text-color: #f0f1f4;
+    padding: 8px 12px; font-family: 'Segoe UI';
+    font-size: 11pt; font-weight: 400; placeholder-text-color: #aeb6c3;
 }
 QLineEdit#busca_jogos:focus { border-color: #ff8577; }
 QLineEdit#busca_jogos QToolButton {

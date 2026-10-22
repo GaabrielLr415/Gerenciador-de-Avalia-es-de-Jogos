@@ -202,12 +202,15 @@ class DialogoDetalhes(QDialog):
             self.capa.setText(nome[:1].upper())
         else:
             self.capa.setText("")
-            redimensionada = imagem.scaled(self.capa.size(), Qt.AspectRatioMode.KeepAspectRatioByExpanding,
-                                          Qt.TransformationMode.SmoothTransformation)
-            self.capa.setPixmap(redimensionada.copy(
-                (redimensionada.width() - self.capa.width()) // 2,
-                (redimensionada.height() - self.capa.height()) // 2,
-                self.capa.width(), self.capa.height()))
+            from PySide6.QtCore import QRectF
+            from PySide6.QtGui import QPainter, QPixmap
+            from cliente.telas.cards import desenhar_capa_preenchida
+            enquadrada = QPixmap(self.capa.size())
+            enquadrada.fill(Qt.GlobalColor.transparent)
+            pintor = QPainter(enquadrada)
+            desenhar_capa_preenchida(pintor, imagem, QRectF(enquadrada.rect()))
+            pintor.end()
+            self.capa.setPixmap(enquadrada)
 
     def preencher_avaliacoes(self, avaliacoes, nome_autor):
         while self.avaliacoes_layout.count():
