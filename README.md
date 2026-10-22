@@ -1,91 +1,121 @@
-# TechGames — Gerenciador de Avaliações de Jogos
+# TechGames - Gerenciador de Avaliações de Jogos
 
-Aplicação acadêmica para cadastro de jogos e avaliações, desenvolvida em Python.
-O servidor fornece uma API REST com Flask e persiste os dados em arquivos JSON
-locais, sem banco de dados. A interface Qt permite gerenciar jogos e avaliações
-por estrelas, integrada ao servidor via HTTP.
+Aplicação acadêmica em Python, Flask e Qt (PySide6), com persistência local em
+JSON. Permite cadastrar jogos, publicar avaliações de 0 a 10 com comentários e
+metadados, consultar médias e demonstrar Builder, Proxy e Observer.
 
-## Tecnologias
+Entrega planejada pela equipe: **23/10/2026**. O PDF disponível contém os cenários
+de teste, mas não informa prazo nem exige executável. A necessidade de entregar
+um executável sem Python ainda deve ser confirmada com o professor.
 
-- Python
-- Flask (servidor)
-- PySide6 (interface desktop)
-- Requests (cliente HTTP)
-- Arquivos JSON locais (persistência)
-
-## Estrutura do repositório
+## Estrutura
 
 ```text
-cliente/                   Interface Qt e cliente HTTP
-dados/                     Arquivos JSON de jogos e avaliações
-documentacao/              Contrato, arquitetura e acompanhamento
-servidor/app.py            API Flask e validação
-servidor/storage/          Repositório de persistência JSON
-testes/                    Testes automatizados
-requirements.txt           Dependências Python
+cliente/                   Interface Qt e comunicação HTTP
+servidor/app.py            API Flask
+servidor/patterns/         Builder, Proxy, serviço e Observer
+servidor/storage/          Repository JSON e contadores
+dados/                     Jogos e avaliações locais
+testes/                    Testes automatizados com dados temporários
+documentacao/              Requisitos, contrato, diagramas e validação
+requirements.txt           Dependências
 ```
 
-## Requisitos
+## Instalar no Windows
 
-- Python 3.10 ou superior (o código usa anotações de tipo com `|`).
-- Pip para instalar as dependências de `requirements.txt`.
+Requer Python 3.10 ou superior, 64 bits, pip e acesso à internet para baixar
+dependências. Use uma pasta em que o usuário possa gravar os dados.
+A versão efetivamente testada está no [relatório de validação](documentacao/validacao-entrega.md);
+a declaração de versão mínima não representa teste de todas as versões do Python.
 
-## Instalação e execução no Windows
-
-No PowerShell, a partir da raiz do repositório:
+Baixe o ZIP do repositório e extraia-o, ou use sua cópia local atualizada.
+Abra o PowerShell na raiz, onde está este README:
 
 ```powershell
 py -m venv .venv
-.\.venv\Scripts\Activate.ps1
-python -m pip install -r requirements.txt
-python servidor\app.py
+.\.venv\Scripts\python.exe -m pip install -r requirements.txt
+.\.venv\Scripts\python.exe -m pip check
 ```
 
-O servidor de desenvolvimento ficará disponível em `http://127.0.0.1:5000`.
-Confira se está ativo em `http://127.0.0.1:5000/health`. Em outro terminal, com o
-mesmo ambiente virtual ativado, inicie a interface:
+Os comandos usam o Python do ambiente diretamente; não é necessário ativar
+scripts nem alterar a política de execução do PowerShell.
+
+## Executar
+
+No primeiro terminal, a partir da raiz:
 
 ```powershell
-python -m cliente
+.\.venv\Scripts\python.exe -m servidor.app
 ```
 
-Consulte [as instruções da interface](cliente/README.md) para o uso das estrelas,
-configuração do endereço e roteiro de apresentação. O servidor integrado é o
-servidor de desenvolvimento do Flask, voltado ao uso local.
+Confira `http://127.0.0.1:5000/health`: deve retornar `status: ok` e os recursos
+`capa_url`, `design_patterns` e `media_servidor`.
+
+Em outro terminal, também na raiz:
+
+```powershell
+.\.venv\Scripts\python.exe -m cliente
+```
+
+Mantenha o terminal Flask aberto durante o uso. Encerre a interface pela janela
+e o servidor com Ctrl+C. Se a porta 5000 já estiver ocupada, encerre a instância
+anterior do TechGames antes de iniciar outra.
+
+Para apontar o cliente para outro servidor já iniciado:
+
+```powershell
+.\.venv\Scripts\python.exe -m cliente --servidor http://127.0.0.1:5000
+```
+
+## Avaliações e padrões
+
+- Novas avaliações exigem `autor_id` inteiro positivo e nota entre 0 e 10.
+  Comentário é opcional; `metadados` é objeto JSON opcional, com padrão `{}`.
+- O Builder valida e constrói os dados antes da persistência.
+- Para editar ou excluir individualmente, selecione o ID local do autor ou o
+  moderador fictício **99**. O cliente envia `X-Ator-Id`; o Proxy verifica a regra.
+- IDs locais servem à demonstração acadêmica, sem login ou autenticação.
+- Autor, ID da avaliação e vínculo com o jogo são preservados na edição.
+- Avaliações antigas sem autor podem ser lidas, mas não alteradas individualmente.
+  A exclusão de um jogo continua removendo todas as suas avaliações em cascata.
+- O Observer atualiza a média no servidor; o Qt consulta e apresenta o resultado.
 
 ## Persistência
 
-O servidor cria `dados/jogos.json` e `dados/avaliacoes.json` com conteúdo `[]`
-quando ainda não existem. Um arquivo auxiliar oculto,
-`dados/.contadores_id.json`, mantém os IDs mesmo após exclusões. Dados JSON
-malformados são preservados em um arquivo `.bak` antes da recuperação. Os testes
-operam somente em diretórios temporários.
+O servidor cria `dados/jogos.json` e `dados/avaliacoes.json` quando ausentes.
+`dados/.contadores_id.json` preserva os IDs históricos e não é versionado.
+Para transportar dados existentes, copie os três arquivos com o servidor parado,
+incluindo o contador oculto. Não remova o contador para reiniciar o aplicativo.
+
+Arquivos de dados inválidos podem gerar backup `.bak` antes da recuperação.
+Na cascata, há tentativa de restauração se uma gravação falhar. O armazenamento
+não oferece transação entre arquivos ou bloqueio entre múltiplos processos.
+Use uma instância local para a demonstração.
+
+Não teste cadastros de demonstração sobre os dados reais. Para ensaiar,
+extraia uma cópia separada do projeto, sem copiar `dados/` nem `.venv/`.
 
 ## Testes
 
-Com o ambiente virtual ativado, execute:
-
 ```powershell
-python -m unittest discover -s testes -p "test_*.py" -v
+.\.venv\Scripts\python.exe -B -m unittest discover -s testes -p "test_*.py" -v
 ```
 
-## Documentação
+Os testes de dados usam diretórios temporários. Os testes Qt usam interface
+sem janela visível e um servidor HTTP local em porta temporária.
+Consulte [a cobertura](testes/README.md) e o
+[relatório de validação](documentacao/validacao-entrega.md).
 
-- [Contrato da API](documentacao/contrato-api.md) — proposta de integração ainda
-  sujeita à aprovação da equipe.
+## Documentação e apresentação
+
 - [Requisitos e critérios de aceitação](documentacao/requisitos-e-aceitacao.md)
-  — base provisória; aguarda os requisitos oficiais de João Pedro.
-- [Arquitetura e padrões](documentacao/arquitetura-e-padroes.md) — organização,
-  padrões, diagrama do servidor e pendência do diagrama do cliente.
-- [Acompanhamento da equipe](documentacao/ACOMPANHAMENTO.md)
-- [Notas do cliente](cliente/README.md)
-- [Notas de testes](testes/README.md)
+- [Contrato da API](documentacao/contrato-api.md)
+- [Arquitetura e diagramas do servidor e cliente](documentacao/arquitetura-e-padroes.md)
+- [Roteiro de demonstração T9.1 a T9.4](documentacao/entrega-design-patterns.md)
+- [Validação e pendências de entrega](documentacao/validacao-entrega.md)
+- [Responsabilidades e acompanhamento](documentacao/ACOMPANHAMENTO.md)
+- [Uso da interface](cliente/README.md)
 
-## Estado da entrega
-
-Builder, Proxy e Observer estão integrados ao Flask e à interface Qt. Para
-editar/excluir avaliações, escolha o ID local do autor ou o moderador fictício
-99. A interface recebe a média do servidor e permite metadados JSON opcionais.
-Não há login. Consulte o [roteiro dos padrões](documentacao/entrega-design-patterns.md)
-para demonstrar os cenários T9.1 a T9.4. A revisão final dos requisitos e dos
-outros documentos da equipe continua necessária antes da entrega acadêmica.
+A execução pelo código está documentada. Não há executável empacotado validado.
+A revisão visual presencial e o teste em outro computador continuam necessários
+antes de declarar a entrega acadêmica concluída.
