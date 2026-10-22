@@ -4,10 +4,22 @@ import math
 
 from PySide6.QtCore import QPointF, QRectF, QSize, Qt, QUrl, Signal
 from PySide6.QtGui import QColor, QFont, QLinearGradient, QPainter, QPainterPath, QPen, QPixmap
-from PySide6.QtWidgets import QStyledItemDelegate, QStyle
+from PySide6.QtWidgets import QListWidget, QStyledItemDelegate, QStyle
 from PySide6.QtNetwork import QNetworkAccessManager, QNetworkReply, QNetworkRequest
 
 from cliente.telas.estrelas import nota_em_meias_estrelas
+
+
+class GradeJogos(QListWidget):
+    """Distribui as colunas pela largura disponível, mantendo o espaço entre capas."""
+
+    def resizeEvent(self, evento):
+        super().resizeEvent(evento)
+        largura = self.viewport().width()
+        coluna = largura // max(1, largura // 188)
+        self.setGridSize(QSize(coluna, 316))
+        for indice in range(self.count()):
+            self.item(indice).setSizeHint(QSize(max(1, coluna - 10), 306))
 
 
 class CardsDelegate(QStyledItemDelegate):
@@ -63,7 +75,7 @@ class CardsDelegate(QStyledItemDelegate):
         resposta.finished.connect(concluir)
 
     def sizeHint(self, option, index):
-        return QSize(178, 306)
+        return index.data(Qt.ItemDataRole.SizeHintRole) or QSize(178, 306)
 
     def obter_capa(self, jogo, caminho=""):
         if caminho and caminho not in self._capas:

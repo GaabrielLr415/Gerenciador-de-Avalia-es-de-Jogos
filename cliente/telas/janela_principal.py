@@ -3,15 +3,16 @@
 from pathlib import Path
 
 from PySide6.QtCore import QPoint, QSettings, QSize, QSignalBlocker, QTimer, Qt
-from PySide6.QtGui import QPixmap, QShortcut
+from PySide6.QtGui import QIcon, QPixmap, QShortcut
 from PySide6.QtWidgets import (
     QAbstractItemView, QComboBox, QFileDialog, QFormLayout, QFrame, QGridLayout, QHBoxLayout, QLabel, QLineEdit,
     QListWidget, QListWidgetItem, QMainWindow, QMenu, QMessageBox,
-    QProgressBar, QPushButton, QSplitter, QStackedWidget, QVBoxLayout, QWidget, QSpinBox,
+    QProgressBar, QPushButton, QSplitter, QStackedWidget, QToolButton, QVBoxLayout, QWidget, QSpinBox,
 )
 
 from cliente.services.tarefas import ExecutorHTTP
-from cliente.telas.cards import AvaliacoesDelegate, CardsDelegate
+from cliente.telas.avisos import AvisoErro
+from cliente.telas.cards import AvaliacoesDelegate, CardsDelegate, GradeJogos
 from cliente.telas.detalhes import DialogoDetalhes
 from cliente.telas.formularios import FormularioAvaliacao, FormularioJogo
 from cliente.telas.paginacao import Paginacao
@@ -150,6 +151,8 @@ class JanelaPrincipal(QMainWindow):
         identificacao_layout.setSpacing(8)
         identificacao_layout.addWidget(rotulo("ID local", "subtitulo"))
         self.ator_local = QSpinBox()
+        self.ator_local.setObjectName("id_status")
+        self.ator_local.setFixedHeight(28)
         self.ator_local.setFixedWidth(88)
         self.ator_local.setRange(1, 2147483647)
         self.ator_local.setValue(self.api.ator_id or 1)
@@ -170,7 +173,7 @@ class JanelaPrincipal(QMainWindow):
         self.sucesso = rotulo()
         self.sucesso.hide()
         layout.addWidget(self.sucesso)
-        self.erro = rotulo(estilo="erro")
+        self.erro = AvisoErro()
         self.erro.hide()
         layout.addWidget(self.erro)
         self.progresso = QProgressBar()
@@ -187,13 +190,35 @@ class JanelaPrincipal(QMainWindow):
         esquerda.setContentsMargins(0, 8, 0, 0)
         esquerda.setSpacing(14)
         titulo_colecao = QHBoxLayout()
+        titulo_colecao.setSpacing(12)
+        titulo_colecao.setAlignment(Qt.AlignmentFlag.AlignVCenter)
         titulo_colecao.addWidget(rotulo("Jogos", "secao"))
         titulo_colecao.addStretch()
         self.busca = QLineEdit()
-        self.busca.setPlaceholderText(
-            "Buscar por nome, gênero ou plataforma…")
-        self.busca.setMinimumWidth(140)
+        self.busca.setObjectName("busca_jogos")
+        self.busca.setPlaceholderText("PROCURAR JOGO")
+        self.busca.setToolTip("Buscar por nome, gênero ou plataforma")
+        self.busca.setMinimumWidth(220)
         self.busca.setMaximumWidth(520)
+        self.busca.setFixedHeight(46)
+        svg_lupa = b'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="#d4d7de" stroke-width="2"><circle cx="10" cy="10" r="6"/><path d="m14.5 14.5 6 6"/></svg>'
+        try:
+            svg_lupa = (pasta_imagens / "LUPA.svg").read_bytes().replace(
+                b"<path ", b'<path fill="#d4d7de" ', 1)
+        except OSError:
+            pass
+        imagem_lupa = QPixmap()
+        imagem_lupa.loadFromData(svg_lupa, "SVG")
+        self.acao_buscar = self.busca.addAction(
+            QIcon(imagem_lupa), QLineEdit.ActionPosition.TrailingPosition)
+        self.acao_buscar.setText("Procurar jogo")
+        self.acao_buscar.setToolTip("Procurar jogo")
+        self.acao_buscar.triggered.connect(lambda: (self.busca.setFocus(), self._filtrar()))
+        for botao_lupa in self.busca.findChildren(QToolButton):
+            botao_lupa.setIconSize(QSize(24, 24))
+            botao_lupa.setAccessibleName("Procurar jogo")
+        for botao in (self.botao_biblioteca, self.botao_minhas, self.botao_atualizar):
+            botao.setFixedHeight(40)
         acoes.addWidget(self.busca, 1)
         self.botao_perfil = QPushButton()
         self.botao_perfil.setObjectName("avatar_perfil")
@@ -218,6 +243,7 @@ class JanelaPrincipal(QMainWindow):
         titulo_colecao.addWidget(self.total_jogos)
         self.botao_filtros = QPushButton("Filtros")
         self.botao_filtros.setObjectName("botao_filtros")
+        self.botao_filtros.setFixedHeight(40)
         self.botao_filtros.setAccessibleName("Abrir filtros de jogos")
         self.botao_filtros.clicked.connect(self._abrir_filtros)
         titulo_colecao.addWidget(self.botao_filtros)
@@ -270,7 +296,7 @@ class JanelaPrincipal(QMainWindow):
         self.concluir_filtros.clicked.connect(self.painel_filtros.hide)
         rodape_filtros.addWidget(self.concluir_filtros)
         painel_layout.addLayout(rodape_filtros)
-        self.lista = QListWidget()
+        self.lista = GradeJogos()
         self.lista.setViewMode(QListWidget.ViewMode.IconMode)
         self.lista.setResizeMode(QListWidget.ResizeMode.Adjust)
         self.lista.setMovement(QListWidget.Movement.Static)
@@ -295,6 +321,7 @@ class JanelaPrincipal(QMainWindow):
         esquerda.addWidget(self.paginacao)
         self.novo_jogo = QPushButton("+ Adicionar jogo")
         self.novo_jogo.setObjectName("primario")
+        self.novo_jogo.setFixedHeight(40)
         self.novo_jogo.clicked.connect(self.adicionar_jogo)
         titulo_colecao.addWidget(self.novo_jogo)
         self.divisao.addWidget(biblioteca)
@@ -332,7 +359,10 @@ class JanelaPrincipal(QMainWindow):
         layout.setContentsMargins(0, 8, 0, 0)
         layout.setSpacing(12)
         titulo = QHBoxLayout()
-        titulo.addWidget(rotulo("Minhas avaliações", "titulo"))
+        titulo.setSpacing(12)
+        titulo.setAlignment(Qt.AlignmentFlag.AlignVCenter)
+        titulo.addWidget(rotulo("Minhas avaliações", "secao"))
+        titulo.addStrut(40)
         titulo.addStretch()
         self.total_minhas = rotulo(estilo="subtitulo")
         titulo.addWidget(self.total_minhas)
@@ -776,7 +806,7 @@ class JanelaPrincipal(QMainWindow):
                 visual["capa_local"] = self.preferencias.value(
                     f"capas/{jogo['id']}", "")
                 item.setData(Qt.ItemDataRole.UserRole + 1, visual)
-                item.setSizeHint(QSize(178, 306))
+                item.setSizeHint(QSize(max(1, self.lista.gridSize().width() - 10), 306))
                 if jogo["id"] == selecionar_id:
                     selecionado = item
             if jogos:

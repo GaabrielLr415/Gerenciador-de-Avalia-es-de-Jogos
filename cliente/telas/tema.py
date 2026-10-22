@@ -39,12 +39,28 @@ QLabel#erro {
     color: #ffd0ce; background: #382529; border: 1px solid #654049;
     border-radius: 9px; padding: 12px;
 }
+QFrame#erro {
+    background: #382529; border: 1px solid #654049; border-radius: 10px;
+}
+QFrame#erro QLabel { color: #ffd0ce; }
+QLabel#titulo_erro { color: #fff0ed; font-weight: 700; }
 QLabel#aviso { color: #ebce9e; }
 QLineEdit, QPlainTextEdit, QSpinBox, QDoubleSpinBox, QComboBox {
     background: #353a46; border: 1px solid #515867; border-radius: 8px;
     padding: 8px; color: #f0f1f4; selection-background-color: #97483e;
 }
 QLineEdit { min-height: 24px; }
+QLineEdit#busca_jogos {
+    background: #2c313a; border: 1px solid transparent; border-radius: 13px;
+    padding: 8px 16px; font-family: 'Impact', 'Bahnschrift SemiCondensed', 'Segoe UI';
+    font-size: 14pt; font-weight: 700; placeholder-text-color: #f0f1f4;
+}
+QLineEdit#busca_jogos:focus { border-color: #ff8577; }
+QLineEdit#busca_jogos QToolButton {
+    background: transparent; border: none; padding: 0;
+}
+QSpinBox, QDoubleSpinBox, QComboBox { min-height: 24px; }
+QSpinBox#id_status { min-height: 18px; padding: 3px 8px; }
 QLineEdit:focus, QPlainTextEdit:focus, QSpinBox:focus, QDoubleSpinBox:focus {
     border-color: #ff8577;
 }
@@ -131,6 +147,9 @@ QFrame#painel_capa {
 QDoubleSpinBox#nota_popup {
     background: transparent; border: none; color: #fff0ec;
     font-size: 18pt; font-weight: 700; padding: 0; min-height: 48px;
+}
+QDoubleSpinBox#nota_popup::up-button, QDoubleSpinBox#nota_popup::down-button {
+    width: 0; height: 0;
 }
 QPushButton#fechar_popup {
     color: #c2c7d1; background: #404754; border: none;

@@ -13,6 +13,7 @@ from PySide6.QtWidgets import (
 )
 
 from cliente.telas.estrelas import Estrelas, nota_em_meias_estrelas
+from cliente.telas.avisos import AvisoErro
 
 
 class Formulario(QDialog):
@@ -68,6 +69,7 @@ class Formulario(QDialog):
         self.form = QFormLayout(self.campos)
         self.form.setContentsMargins(0, 0, 0, 0)
         self.form.setSpacing(12)
+        self.form.setLabelAlignment(Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignVCenter)
         self.form.setFieldGrowthPolicy(
             QFormLayout.FieldGrowthPolicy.AllNonFixedFieldsGrow)
         if moderno:
@@ -81,10 +83,7 @@ class Formulario(QDialog):
             self.layout_principal.addWidget(self.scroll_campos, 1)
         else:
             self.layout_principal.addWidget(self.campos)
-        self.erro = QLabel()
-        self.erro.setObjectName("erro")
-        self.erro.setTextFormat(Qt.TextFormat.PlainText)
-        self.erro.setWordWrap(True)
+        self.erro = AvisoErro(compacto=True)
         self.erro.hide()
         self.layout_principal.addWidget(self.erro)
         self.botoes = QDialogButtonBox()
@@ -223,7 +222,7 @@ class FormularioJogo(Formulario):
             legenda = QLabel(texto)
             legenda.setBuddy(campo)
             coluna.addWidget(legenda)
-            coluna.addWidget(campo)
+            coluna.addWidget(campo, 0, Qt.AlignmentFlag.AlignBottom)
             linha_dados.addWidget(grupo, proporcao)
         self.form.addRow(linha_dados)
 
@@ -340,6 +339,7 @@ class FormularioAvaliacao(Formulario):
         self.nota.setSuffix(" / 10")
         self.nota.setFixedWidth(144)
         self.nota.setObjectName("nota_popup")
+        self.nota.setAlignment(Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter)
         self.nota.setAccessibleName("Nota de zero a dez")
         self.nota.setValue(registro.get("nota", 0))
         self.estrelas.definir_nota(self.nota.value())
@@ -370,9 +370,10 @@ class FormularioAvaliacao(Formulario):
         titulo_nota.addWidget(zerar)
         nota_layout.addLayout(titulo_nota)
         linha_nota = QHBoxLayout()
-        linha_nota.addWidget(self.estrelas)
+        linha_nota.setSpacing(16)
+        linha_nota.addWidget(self.estrelas, 0, Qt.AlignmentFlag.AlignVCenter)
         linha_nota.addStretch()
-        linha_nota.addWidget(self.nota)
+        linha_nota.addWidget(self.nota, 0, Qt.AlignmentFlag.AlignVCenter)
         nota_layout.addLayout(linha_nota)
         nota_layout.addWidget(self.valor_estrelas)
         self.form.addRow(nota_card)
@@ -391,11 +392,12 @@ class FormularioAvaliacao(Formulario):
         self.autor.setToolTip("Identificador local do autor. Não é uma autenticação.")
         self.autor.setAccessibleName("Identificação local do autor")
         linha_autor = QHBoxLayout()
+        linha_autor.setSpacing(12)
         linha_autor.addWidget(self.autor)
         explicacao_autor = QLabel("Identificação local da avaliação")
         explicacao_autor.setObjectName("subtitulo")
-        linha_autor.addWidget(explicacao_autor)
-        linha_autor.addStretch()
+        explicacao_autor.setWordWrap(True)
+        linha_autor.addWidget(explicacao_autor, 1)
         rotulo_autor = QLabel("&Autor")
         rotulo_autor.setBuddy(self.autor)
         self.form.addRow(rotulo_autor, linha_autor)

@@ -8,6 +8,8 @@ from PySide6.QtWidgets import (
     QVBoxLayout,
 )
 
+from cliente.telas.avisos import AvisoErro
+
 
 class PerfisLocais:
     def __init__(self, preferencias):
@@ -99,10 +101,7 @@ class DialogoPerfil(QDialog):
         explicacao.setObjectName("subtitulo")
         explicacao.setWordWrap(True)
         layout.addWidget(explicacao)
-        self.erro = QLabel()
-        self.erro.setObjectName("erro")
-        self.erro.setTextFormat(Qt.TextFormat.PlainText)
-        self.erro.setWordWrap(True)
+        self.erro = AvisoErro(compacto=True)
         self.erro.hide()
         layout.addWidget(self.erro)
         botoes = QDialogButtonBox()
