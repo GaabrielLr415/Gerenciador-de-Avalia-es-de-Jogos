@@ -271,7 +271,7 @@ class ClienteQtTestes(unittest.TestCase):
         with self.assertRaisesRegex(Exception, "HTTP 400"):
             self.cliente.cadastrar_jogo(dict(self.dados_jogo(), capa_url="file:///imagem.png"))
 
-    def test_card_abre_avaliacao_em_outra_janela_para_o_jogo_clicado(self):
+    def test_card_abre_consulta_e_permite_avaliar_o_jogo_clicado(self):
         self.repo.criar_jogo(self.dados_jogo("Primeiro"))
         segundo = self.repo.criar_jogo(self.dados_jogo("Segundo"))
         self.janela.atualizar()
@@ -281,6 +281,11 @@ class ClienteQtTestes(unittest.TestCase):
         item = self.janela.lista.item(1)
         QTest.mouseClick(self.janela.lista.viewport(), Qt.MouseButton.LeftButton,
                          pos=self.janela.lista.visualItemRect(item).center())
+        self.aguardar_http()
+        self.assertTrue(self.janela.janela_detalhes.isVisible())
+        self.assertEqual(self.janela.titulo.text(), "Segundo")
+        self.assertIsNone(self.janela.dialogo)
+        QTest.mouseClick(self.janela.nova_avaliacao, Qt.MouseButton.LeftButton)
         self.esperar(lambda: self.janela.dialogo is not None and self.janela.dialogo.isVisible())
         formulario = self.janela.dialogo
         self.assertIn("Segundo", formulario.windowTitle())
@@ -289,7 +294,7 @@ class ClienteQtTestes(unittest.TestCase):
         self.aguardar_http()
         self.assertEqual(self.repo.listar_avaliacoes(segundo["id"])[0]["nota"], 8.5)
         self.assertEqual(self.repo.listar_avaliacoes(1), [])
-        self.assertFalse(self.janela.janela_detalhes.isVisible())
+        self.assertTrue(self.janela.janela_detalhes.isVisible())
 
     def test_servidor_antigo_nao_descarta_link_silenciosamente(self):
         with patch.object(self.cliente, "_request", return_value={"status": "ok"}) as chamada:

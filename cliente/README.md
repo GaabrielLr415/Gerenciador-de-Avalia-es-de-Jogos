@@ -36,7 +36,8 @@ as proporções. Também aceita `logo.webp`, `logo.jpg` ou `logo.jpeg` nessa pas
 O caminho é resolvido a partir do código, sem depender da pasta do terminal.
 Se o arquivo estiver ausente ou inválido, a identificação textual permanece.
 A média das avaliações aparece em um indicador circular. Clique em um
-card para abrir uma janela de avaliação com estrelas, nota e comentário.
+card para consultar suas avaliações e comentários. Nessa janela, use
+**Avaliar jogo** para criar uma avaliação com estrelas, nota e comentário.
 O popup de avaliação tem cabeçalho próprio, fechamento por botão ou Esc e
 nota numérica sincronizada às estrelas. Os metadados ficam em **Opções adicionais**;
 recolher a seção preserva os valores. Dados inválidos revelam o editor e exibem

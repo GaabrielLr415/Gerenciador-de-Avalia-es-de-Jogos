@@ -6,5 +6,13 @@
     "nota": 10.0,
     "comentario": "",
     "metadados": {}
+  },
+  {
+    "id": 2,
+    "jogo_id": 2,
+    "autor_id": 1,
+    "nota": 9.0,
+    "comentario": "",
+    "metadados": {}
   }
 ]

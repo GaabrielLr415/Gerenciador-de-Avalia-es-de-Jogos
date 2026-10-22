@@ -7,5 +7,212 @@
     "ano_lancamento": 2026,
     "descricao": "",
     "capa_url": "https://s2-techtudo.glbimg.com/iSACGnb2qaVzJyv0lpMA-uk2AK8=/0x0:1440x2560/984x0/smart/filters:strip_icc()/i.s3.glbimg.com/v1/AUTH_08fbf48bc0524877943fe86e43087e7a/internal_photos/bs/2025/5/1/RvDHm1QOaYGkr67qdRiw/gta-6-wallpaper-smartphone-blaue-gtaforums.jpg"
+  },
+  {
+    "id": 3,
+    "nome": "Hollow Knight",
+    "genero": "Metroidvania",
+    "plataforma": "PC",
+    "ano_lancamento": 2017,
+    "descricao": "Explore um reino subterrâneo em uma aventura de exploração e combate.",
+    "capa_url": "https://cdn.akamai.steamstatic.com/steam/apps/367520/library_600x900.jpg"
+  },
+  {
+    "id": 6,
+    "nome": "Minecraft",
+    "genero": "Sandbox",
+    "plataforma": "PC",
+    "ano_lancamento": 2011,
+    "descricao": "Construa, explore e sobreviva em mundos formados por blocos.",
+    "capa_url": "https://www.minecraft.net/content/dam/minecraftnet/games/minecraft/key-art/NewKeyArt_Header.jpg"
+  },
+  {
+    "id": 8,
+    "nome": "God of War",
+    "genero": "Ação e aventura",
+    "plataforma": "PlayStation",
+    "ano_lancamento": 2018,
+    "descricao": "Acompanhe Kratos e Atreus em uma jornada inspirada na mitologia nórdica.",
+    "capa_url": "https://cdn.akamai.steamstatic.com/steam/apps/1593500/library_600x900.jpg"
+  },
+  {
+    "id": 9,
+    "nome": "EA SPORTS FC 27",
+    "genero": "Esporte",
+    "plataforma": "PC",
+    "ano_lancamento": 2026,
+    "descricao": "Simulador de futebol com clubes, selecoes e modos de carreira e partidas.",
+    "capa_url": "https://shared.fastly.steamstatic.com/store_item_assets/steam/apps/4080220/ff6a3779f1ca83aae8ad3878454f6c11008ea24d/header.jpg?t=1790973254"
+  },
+  {
+    "id": 10,
+    "nome": "Counter-Strike 2",
+    "genero": "FPS competitivo",
+    "plataforma": "PC",
+    "ano_lancamento": 2023,
+    "descricao": "Dispute partidas táticas entre equipes, com objetivos de ataque e defesa.",
+    "capa_url": "https://cdn.akamai.steamstatic.com/steam/apps/730/library_600x900.jpg"
+  },
+  {
+    "id": 11,
+    "nome": "Elden Ring",
+    "genero": "RPG de ação",
+    "plataforma": "PC",
+    "ano_lancamento": 2022,
+    "descricao": "Explore as Terras Intermédias, enfrente chefes e desenvolva seu personagem.",
+    "capa_url": "https://cdn.akamai.steamstatic.com/steam/apps/1245620/library_600x900.jpg"
+  },
+  {
+    "id": 13,
+    "nome": "PUBG: BATTLEGROUNDS",
+    "genero": "Battle Royale",
+    "plataforma": "PC",
+    "ano_lancamento": 2017,
+    "descricao": "Busque equipamentos e sobreviva até ser o último jogador ou equipe na partida.",
+    "capa_url": "https://cdn.akamai.steamstatic.com/steam/apps/578080/library_600x900.jpg"
+  },
+  {
+    "id": 14,
+    "nome": "Apex Legends",
+    "genero": "Battle Royale",
+    "plataforma": "PC",
+    "ano_lancamento": 2019,
+    "descricao": "Forme um esquadrão de personagens com habilidades distintas em combates competitivos.",
+    "capa_url": "https://cdn.akamai.steamstatic.com/steam/apps/1172470/library_600x900.jpg"
+  },
+  {
+    "id": 16,
+    "nome": "Rocket League",
+    "genero": "Esporte",
+    "plataforma": "PC",
+    "ano_lancamento": 2015,
+    "descricao": "Jogue futebol com carros em partidas rápidas e competitivas.",
+    "capa_url": "https://cdn.akamai.steamstatic.com/steam/apps/252950/library_600x900.jpg"
+  },
+  {
+    "id": 17,
+    "nome": "Street Fighter 6",
+    "genero": "Luta",
+    "plataforma": "PC",
+    "ano_lancamento": 2023,
+    "descricao": "Domine combos e enfrente adversários em combates com personagens de estilos variados.",
+    "capa_url": "https://cdn.akamai.steamstatic.com/steam/apps/1364780/library_600x900.jpg"
+  },
+  {
+    "id": 23,
+    "nome": "Call of Duty: Modern Warfare 2",
+    "genero": "FPS",
+    "plataforma": "PC",
+    "ano_lancamento": 2009,
+    "descricao": "Jogo de tiro em primeira pessoa da franquia Call of Duty.",
+    "capa_url": "https://cdn.akamai.steamstatic.com/steam/apps/10180/library_600x900.jpg"
+  },
+  {
+    "id": 25,
+    "nome": "Call of Duty: Modern Warfare 3",
+    "genero": "FPS",
+    "plataforma": "PC",
+    "ano_lancamento": 2011,
+    "descricao": "Jogo de tiro em primeira pessoa da franquia Call of Duty.",
+    "capa_url": "https://cdn.akamai.steamstatic.com/steam/apps/42680/library_600x900.jpg"
+  },
+  {
+    "id": 26,
+    "nome": "Call of Duty: Black Ops II",
+    "genero": "FPS",
+    "plataforma": "PC",
+    "ano_lancamento": 2012,
+    "descricao": "Jogo de tiro em primeira pessoa da franquia Call of Duty.",
+    "capa_url": "https://cdn.akamai.steamstatic.com/steam/apps/202970/library_600x900.jpg"
+  },
+  {
+    "id": 27,
+    "nome": "Call of Duty: Ghosts",
+    "genero": "FPS",
+    "plataforma": "PC",
+    "ano_lancamento": 2013,
+    "descricao": "Jogo de tiro em primeira pessoa da franquia Call of Duty.",
+    "capa_url": "https://cdn.akamai.steamstatic.com/steam/apps/209160/library_600x900.jpg"
+  },
+  {
+    "id": 29,
+    "nome": "Call of Duty: Black Ops III",
+    "genero": "FPS",
+    "plataforma": "PC",
+    "ano_lancamento": 2015,
+    "descricao": "Jogo de tiro em primeira pessoa da franquia Call of Duty.",
+    "capa_url": "https://cdn.akamai.steamstatic.com/steam/apps/311210/library_600x900.jpg"
+  },
+  {
+    "id": 31,
+    "nome": "Call of Duty: WWII",
+    "genero": "FPS",
+    "plataforma": "PC",
+    "ano_lancamento": 2017,
+    "descricao": "Jogo de tiro em primeira pessoa da franquia Call of Duty.",
+    "capa_url": "https://cdn.akamai.steamstatic.com/steam/apps/476600/library_600x900.jpg"
+  },
+  {
+    "id": 32,
+    "nome": "Call of Duty: Black Ops 4",
+    "genero": "FPS",
+    "plataforma": "PC",
+    "ano_lancamento": 2018,
+    "descricao": "Jogo de tiro em primeira pessoa da franquia Call of Duty.",
+    "capa_url": "https://upload.wikimedia.org/wikipedia/en/1/1c/Call_of_Duty_Black_Ops_4_official_box_art.jpg"
+  },
+  {
+    "id": 33,
+    "nome": "Call of Duty: Modern Warfare (2019)",
+    "genero": "FPS",
+    "plataforma": "PC",
+    "ano_lancamento": 2019,
+    "descricao": "Jogo de tiro em primeira pessoa da franquia Call of Duty.",
+    "capa_url": "https://cdn.akamai.steamstatic.com/steam/apps/2000950/library_600x900.jpg"
+  },
+  {
+    "id": 34,
+    "nome": "Call of Duty: Black Ops Cold War",
+    "genero": "FPS",
+    "plataforma": "PC",
+    "ano_lancamento": 2020,
+    "descricao": "Jogo de tiro em primeira pessoa da franquia Call of Duty.",
+    "capa_url": "https://cdn.akamai.steamstatic.com/steam/apps/1985810/library_600x900.jpg"
+  },
+  {
+    "id": 36,
+    "nome": "Call of Duty: Modern Warfare II (2022)",
+    "genero": "FPS",
+    "plataforma": "PC",
+    "ano_lancamento": 2022,
+    "descricao": "Jogo de tiro em primeira pessoa da franquia Call of Duty.",
+    "capa_url": "https://cdn.akamai.steamstatic.com/steam/apps/1962660/header.jpg"
+  },
+  {
+    "id": 37,
+    "nome": "Call of Duty: Modern Warfare III (2023)",
+    "genero": "FPS",
+    "plataforma": "PC",
+    "ano_lancamento": 2023,
+    "descricao": "Jogo de tiro em primeira pessoa da franquia Call of Duty.",
+    "capa_url": "https://cdn.akamai.steamstatic.com/steam/apps/2519060/library_600x900.jpg"
+  },
+  {
+    "id": 38,
+    "nome": "Call of Duty: Black Ops 6",
+    "genero": "FPS",
+    "plataforma": "PC",
+    "ano_lancamento": 2024,
+    "descricao": "Jogo de tiro em primeira pessoa da franquia Call of Duty.",
+    "capa_url": "https://cdn.akamai.steamstatic.com/steam/apps/2933620/header.jpg"
+  },
+  {
+    "id": 41,
+    "nome": "Call of Duty: Warzone",
+    "genero": "Battle Royale",
+    "plataforma": "PC",
+    "ano_lancamento": 2022,
+    "descricao": "Versao atual do battle royale Call of Duty: Warzone, lancada originalmente como Warzone 2.0 em 2022.",
+    "capa_url": "https://cdn.akamai.steamstatic.com/steam/apps/1962663/library_600x900.jpg"
   }
 ]

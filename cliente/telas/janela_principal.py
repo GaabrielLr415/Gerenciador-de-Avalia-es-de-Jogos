@@ -182,8 +182,8 @@ class JanelaPrincipal(QMainWindow):
         self.cards.falha_capa.connect(self._falha_capa)
         self.lista.setVerticalScrollMode(
             QAbstractItemView.ScrollMode.ScrollPerPixel)
-        self.lista.itemClicked.connect(self.abrir_avaliacao_card)
-        self.lista.itemActivated.connect(self.abrir_avaliacao_card)
+        self.lista.itemClicked.connect(self.abrir_avaliacoes_card)
+        self.lista.itemActivated.connect(self.abrir_avaliacoes_card)
         self.lista.setAccessibleName("Jogos")
         esquerda.addWidget(self.lista, 1)
         self.sem_resultados = rotulo(
@@ -345,6 +345,11 @@ class JanelaPrincipal(QMainWindow):
             self._avaliar_pendente = jogo_id
             if not self.executor.ocupado:
                 self._selecionar_jogo()
+
+    def abrir_avaliacoes_card(self, item):
+        self._avaliar_pendente = None
+        self.lista.setCurrentItem(item)
+        self.abrir_detalhes()
 
     def _falha_capa(self, url, mensagem):
         for indice in range(self.lista.count()):
@@ -518,7 +523,7 @@ class JanelaPrincipal(QMainWindow):
         self.botao_detalhes.setEnabled(True)
         self.conexao.setText("Servidor conectado")
         self.statusBar().showMessage(
-            "Clique em um card para avaliar. Use Detalhes do jogo para consultar as avaliações.")
+            "Clique em um card para ver avaliações e comentários. Use Avaliar jogo para criar uma avaliação.")
         if self._avaliar_pendente == jogo["id"]:
             self._avaliar_pendente = None
             QTimer.singleShot(0, self.adicionar_avaliacao)
