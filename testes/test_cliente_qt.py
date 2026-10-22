@@ -400,6 +400,40 @@ class ClienteQtTestes(unittest.TestCase):
         self.assertEqual(self.repo.listar_avaliacoes(jogo["id"]), [])
         formulario.reject()
 
+    def test_opcoes_adicionais_preservam_dados_e_revelam_json_invalido(self):
+        jogo = self.repo.criar_jogo(self.dados_jogo())
+        original = self.repo.criar_avaliacao(jogo["id"], {
+            "autor_id": 7, "nota": 8,
+            "metadados": {"plataforma": "PC", "tags": ["campanha"]},
+        })
+        self.janela.atualizar()
+        self.aguardar_http()
+        self.janela.ator_local.setValue(7)
+        self.janela.tabela.setCurrentCell(0, 0)
+        self.janela.abrir_edicao_avaliacao()
+        formulario = self.janela.dialogo
+        self.assertTrue(formulario.opcoes_metadados.isChecked())
+        formulario.opcoes_metadados.click()
+        self.assertFalse(formulario.area_metadados.isVisible())
+        self.assertEqual(formulario.dados()["metadados"], original["metadados"])
+
+        formulario.metadados.setPlainText('{"nota":NaN}')
+        formulario.enviar()
+        self.assertTrue(formulario.opcoes_metadados.isChecked())
+        self.assertTrue(formulario.area_metadados.isVisible())
+        self.assertTrue(formulario.erro.isVisible())
+        self.assertEqual(self.repo.buscar_avaliacao(original["id"]), original)
+
+        formulario.metadados.setPlainText('{"tags":["revisado"]}')
+        formulario.opcoes_metadados.click()
+        formulario.nota.setValue(9.5)
+        formulario.enviar()
+        self.aguardar_http()
+        atualizada = self.repo.buscar_avaliacao(original["id"])
+        self.assertEqual(atualizada["metadados"], {"tags": ["revisado"]})
+        self.assertEqual(atualizada["autor_id"], 7)
+        self.assertEqual(atualizada["nota"], 9.5)
+
 
 if __name__ == "__main__":
     unittest.main()

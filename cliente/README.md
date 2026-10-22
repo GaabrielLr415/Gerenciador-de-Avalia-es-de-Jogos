@@ -27,13 +27,32 @@ python -m cliente --servidor http://127.0.0.1:5000
 
 ## Avaliações por estrelas
 
-A biblioteca usa cards em uma grade que se ajusta à largura da janela, com
-busca no topo e média das avaliações em um indicador circular. Clique em um
+A tela usa uma barra horizontal no topo com marca, Início, Atualizar, Detalhes,
+busca e Adicionar jogo. O tema usa destaques vermelhos e fundo cinza escuro; não há tela de login
+nem títulos de apresentação da biblioteca. A identificação local e o estado da
+conexão ficam no rodapé. A grade de capas se ajusta à largura da janela.
+O cabeçalho carrega a logo de `imagem/logo.png` na raiz do projeto, preservando
+as proporções. Também aceita `logo.webp`, `logo.jpg` ou `logo.jpeg` nessa pasta.
+O caminho é resolvido a partir do código, sem depender da pasta do terminal.
+Se o arquivo estiver ausente ou inválido, a identificação textual permanece.
+A média das avaliações aparece em um indicador circular. Clique em um
 card para abrir uma janela de avaliação com estrelas, nota e comentário.
+O popup de avaliação tem cabeçalho próprio, fechamento por botão ou Esc e
+nota numérica sincronizada às estrelas. Os metadados ficam em **Opções adicionais**;
+recolher a seção preserva os valores. Dados inválidos revelam o editor e exibem
+o erro sem fechar o formulário. Em janelas menores, os campos podem ser rolados,
+mantendo os botões de ação disponíveis.
+Os formulários de adicionar e editar jogos usam o mesmo painel arredondado,
+com campos identificados acima dos controles, gênero/plataforma/ano agrupados
+e uma seção própria para selecionar a capa local ou informar seu link.
 O botão **Detalhes do jogo** abre uma janela separada com as avaliações anteriores
 e as opções de editar e excluir.
 Em **Escolher capa**, selecione uma imagem PNG, JPG ou WebP do computador.
 A preferência da capa local fica salva neste computador, sem alterar os dados da API.
+O aplicativo guarda o caminho escolhido, sem copiar a imagem. Os arquivos podem
+ser organizados manualmente em uma pasta como `dados/capas/`, mas movê-los ou
+copiar o projeto para outro computador pode exigir selecionar as capas novamente.
+Armazenar e transportar automaticamente as imagens não faz parte desta revisão visual.
 No cadastro e na edição, o campo **Link da capa** aceita um endereço HTTP ou
 HTTPS direto para uma imagem. Esse link é salvo pela API e a imagem é carregada
 sem bloquear a interface. Ao salvar um link, ele substitui a preferência local.
@@ -50,9 +69,13 @@ provisória com o nome; jogos sem avaliações exibem um traço no indicador.
 - O campo numérico aceita decimais, como 9,5. Notas já cadastradas com até duas
   casas decimais são preservadas no formulário; as estrelas mostram o preenchimento
   proporcional. A API recebe sempre a escala 0–10.
-- A identificação do autor é obrigatória no cadastro. O ID não representa login
-  nem autorização. O backend ainda precisa implementar autor/moderador para T9.3.
-- A edição mantém o autor e não envia metadados, preservando os existentes.
+- A identificação do autor é obrigatória no cadastro. O ID local não é login
+  nem autenticação. Para editar ou excluir, escolha o ator local na janela:
+  autor ou moderador fictício 99. O cliente envia `X-Ator-Id` e o Proxy do
+  servidor bloqueia terceiros com HTTP 403.
+- A edição mantém o autor e permite editar os metadados como objeto JSON.
+  O formulário envia o conteúdo exibido; `{}` limpa os metadados. Na API,
+  omitir o campo durante a edição preserva o objeto anterior.
 - Avaliações antigas sem autor ficam disponíveis para leitura, com edição e
   exclusão individual desabilitadas conforme a regra atual do servidor.
 
@@ -65,7 +88,7 @@ serializadas. Isso não substitui o controle de concorrência no servidor.
 
 Falhas no salvamento mantêm o formulário aberto com os valores preenchidos.
 Exclusões exigem confirmação, com cancelar como escolha padrão. Após alterações,
-a tela consulta novamente a API e recalcula a média das avaliações recebidas.
+a tela consulta novamente a API e apresenta a média calculada no servidor.
 O botão **Atualizar** (F5) permite recuperar de falhas e consultar mudanças feitas
 por outro cliente. Não há sincronização automática entre clientes.
 
@@ -90,6 +113,8 @@ Roteiro manual para apresentação:
 6. Reiniciar o servidor e repetir o salvamento; reiniciar o cliente e conferir os dados.
 7. Cancelar uma exclusão; depois confirmar a exclusão de um jogo e suas avaliações.
 
-O fluxo visual de T9.1/T9.2 está implementado. A média da tela se atualiza após
-alterações via sinais e novas consultas. A autorização real e a comprovação
-completa dos três padrões pedidos no plano dependem da integração da equipe.
+Os três padrões estão integrados: publicação pelo Builder, edição/exclusão pelo
+Proxy e atualização da média pelo Observer. A identificação é fictícia para a
+demonstração acadêmica. Avaliações legadas continuam sendo removidas na cascata
+ao excluir seu jogo. Consulte o [roteiro T9.1 a T9.4](../documentacao/entrega-design-patterns.md)
+e o [relatório de validação](../documentacao/validacao-entrega.md).

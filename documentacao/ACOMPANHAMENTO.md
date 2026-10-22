@@ -1,36 +1,54 @@
-# Coordenação da equipe — TechGames
+# Coordenação da equipe - TechGames
 
-Prazo final: **24/10/2026**; meta de versão completa: **23/10/2026**.
+Revisão: 21/10/2026. Prazo de trabalho adotado: **23/10/2026**, conforme informado
+pela equipe. O PDF do plano de testes não informa a data oficial da entrega.
 
-| Issue | Responsável | Entrega principal |
+| Issue | Responsável | Escopo |
 |---|---|---|
-| #1 | Gabriel | Estrutura e servidor Flask — 18/10 |
-| #2 | João Pedro | Requisitos, patterns e testes — 21/10 (requisitos até 13/10) |
-| #3 | Edino | Interface Qt — 19/10 (primeira janela até 14/10) |
-| #4 | Fillipe | Integração HTTP — 21/10 (módulo HTTP até 15/10) |
-| #5 | Angélica | JSON até 15/10, documentação até 22/10, README até 23/10 |
+| #1 | Gabriel | Backend Flask, integração e revisão final. |
+| #2 | Edino | Requisitos, Builder, Proxy, Observer e testes T9.1 a T9.4. |
+| #3 | Fillipe | Interface gráfica Qt. |
+| #4 | João Pedro | Comunicação HTTP e integração Qt/Flask. |
+| #5 | Angélica | Persistência JSON e documentação com Gabriel. |
 
-Cada integrante cria uma branch a partir de `main` atualizada, abre PR com referência à Issue e solicita revisão. Sem alterações diretas em `main`.
+A tabela representa a divisão de responsabilidades das issues, não a autoria
+individual de cada alteração no histórico Git.
 
-**Bloqueios:** comentar na Issue o que está faltando e usar simuladores/contratos para desenvolver em paralelo.
+## Situação técnica
 
-**Pendências imediatas:** aprovar `contrato-api.md`, atribuir Assignees, confirmar convites, testar `/health` localmente, testar empacotamento com antecedência.
+Flask, JSON, Qt, HTTP e os três padrões estão integrados. Há testes de API,
+persistência, padrões, integração HTTP e interface. Os resultados reproduzidos,
+as versões testadas e os limites estão no [relatório de validação](validacao-entrega.md).
 
-## Tarefa de Angélica — persistência e documentação
+Os checklists das issues não foram atualizados automaticamente. Cada integrante
+deve conferir suas evidências antes de marcar um item ou encerrar a tarefa.
 
-- **Persistência JSON:** implementação em `servidor/storage/repositorio_json.py`,
-  com listas JSON, IDs persistentes, gravação atômica, recuperação com backup e
-  testes isolados em diretórios temporários.
-- **Documentação existente:** contrato provisório, critérios organizados e
-  diagrama do servidor registrados em `documentacao/`.
-- **Revisões ainda necessárias:** obter os requisitos oficiais e critérios de
-  João Pedro; validar o contrato e documentação com Gabriel; obter de Edino as
-  classes do cliente para completar o diagrama correspondente.
-- **README final:** instruções de instalação, execução, persistência, testes e
-  links para a documentação foram consolidadas no README da raiz; confirmar
-  dependências e fluxo de execução com a equipe antes da versão final.
+## Prioridades para a entrega
 
-Documentos relacionados:
+- [x] Conferir as páginas relevantes do plano T9.1 a T9.4.
+- [x] Documentar as classes reais do servidor e do cliente.
+- [x] Atualizar as instruções de instalação e execução pelo código.
+- [x] Relacionar requisitos aos testes automatizados existentes.
+- [ ] Edino e Gabriel: comparar o escopo com o enunciado completo do professor.
+- [ ] Equipe: confirmar se a entrega exige executável sem Python.
+- [ ] Equipe: executar o roteiro pelos controles visíveis e registrar o aceite visual.
+- [ ] Equipe: instalar e executar em outro computador.
+- [ ] Gabriel e Angélica: revisar os documentos preparados localmente.
+- [ ] Cada integrante: revisar e atualizar manualmente sua issue.
+- [ ] Equipe: ensaiar a apresentação, dividir as falas e conferir a versão entregue.
 
+A instalação em ambiente virtual novo no mesmo computador não substitui o
+teste em outra máquina. Não declarar empacotamento concluído sem artefato testado.
+
+## Documentos principais
+
+- [README e instalação](../README.md)
 - [Requisitos e critérios de aceitação](requisitos-e-aceitacao.md)
-- [Arquitetura e padrões](arquitetura-e-padroes.md)
+- [Contrato HTTP](contrato-api.md)
+- [Arquitetura e diagramas](arquitetura-e-padroes.md)
+- [Roteiro dos padrões](entrega-design-patterns.md)
+- [Resultados e aceite pendente](validacao-entrega.md)
+
+Os arquivos em subpastas repetidas de `documentacao/` registram material anterior.
+A navegação principal usa os documentos acima; a organização dos arquivos
+históricos pode ser revisada depois, preservando o conteúdo dos colegas.

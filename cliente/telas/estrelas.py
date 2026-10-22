@@ -71,12 +71,12 @@ class Estrelas(QWidget):
                 else:
                     estrela.lineTo(posicao)
             estrela.closeSubpath()
-            pintor.fillPath(estrela, QColor("#344259"))
+            pintor.fillPath(estrela, QColor("#535c6c"))
             fracao = max(0.0, min(1.0, self._nota / 2 - indice))
             pintor.save()
             pintor.setClipRect(QRectF(indice * 48 + 5, 0, 38 * fracao, 48))
             pintor.fillPath(estrela, QColor("#f5c86a"))
             pintor.restore()
         if self.hasFocus():
-            pintor.setPen(QPen(QColor("#7de2c4"), 1, Qt.PenStyle.DashLine))
+            pintor.setPen(QPen(QColor("#ff8577"), 1, Qt.PenStyle.DashLine))
             pintor.drawRoundedRect(self.rect().adjusted(1, 1, -1, -1), 6, 6)
