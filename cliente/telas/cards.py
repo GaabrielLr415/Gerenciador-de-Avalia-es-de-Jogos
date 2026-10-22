@@ -11,32 +11,32 @@ from cliente.telas.estrelas import nota_em_meias_estrelas
 
 
 def desenhar_capa_preenchida(painter, imagem, area):
-    """Mostra a capa inteira sobre um fundo suave da própria imagem."""
+    """Preenche a capa sem faixas, preservando a proporção e o topo da arte."""
     if imagem.isNull() or area.isEmpty():
         return area
+    fator = max(area.width() / imagem.width(), area.height() / imagem.height())
+    largura = area.width() / fator
+    altura = area.height() / fator
+    origem = QRectF((imagem.width() - largura) / 2, 0, largura, altura)
     painter.save()
     painter.setClipRect(area, Qt.ClipOperation.IntersectClip)
     painter.setRenderHint(QPainter.RenderHint.SmoothPixmapTransform)
-    fundo = imagem.scaled(12, 12, Qt.AspectRatioMode.IgnoreAspectRatio,
-                          Qt.TransformationMode.SmoothTransformation)
-    painter.drawPixmap(area, fundo, QRectF(fundo.rect()))
-    painter.fillRect(area, QColor(0, 0, 0, 65))
-    fator = min(area.width() / imagem.width(), area.height() / imagem.height())
-    destino = QRectF(0, 0, imagem.width() * fator, imagem.height() * fator)
-    destino.moveCenter(area.center())
-    painter.drawPixmap(destino, imagem, QRectF(imagem.rect()))
+    painter.drawPixmap(area, imagem, origem)
     painter.restore()
-    return destino
+    return area
 
 
 class GradeJogos(QListWidget):
     """Ajusta as células e a capacidade da página ao espaço disponível."""
 
+    ALTURA_CELULA = 300
     capacidade_alterada = Signal(int)
+    margens_alteradas = Signal(int, int)
 
     def __init__(self, parent=None):
         super().__init__(parent)
         self.capacidade = 12
+        self._laterais_grade = (0, 0)
         self._ajuste = QTimer(self)
         self._ajuste.setSingleShot(True)
         self._ajuste.timeout.connect(self._ajustar_grade)
@@ -47,12 +47,23 @@ class GradeJogos(QListWidget):
 
     def _ajustar_grade(self):
         margem = 2 * self.spacing()
-        largura = max(1, self.viewport().width() - margem)
+        largura = max(1, self.viewport().width() + sum(self._laterais_grade) - 2)
         altura = max(1, self.viewport().height() - margem)
-        colunas = max(1, largura // 188)
-        linhas = max(1, altura // 280)
-        celula = QSize(largura // colunas, max(280, altura // linhas))
-        self.setGridSize(celula)
+        linhas = max(2, altura // self.ALTURA_CELULA)
+        altura_celula = max(120, min(self.ALTURA_CELULA, altura // linhas))
+        # Reduz também a largura de referência nas janelas menores.
+        largura_referencia = max(150, min(188, int((altura_celula - 102) * .84) + 10))
+        colunas = max(1, largura // largura_referencia)
+        largura_celula = largura // colunas
+        sobra = largura - largura_celula * colunas
+        laterais = (sobra // 2, sobra - sobra // 2)
+        if laterais != self._laterais_grade:
+            self._laterais_grade = laterais
+            self.setViewportMargins(laterais[0], 0, laterais[1], 0)
+        self.margens_alteradas.emit(laterais[0] + 7, laterais[1] + 7)
+        celula = QSize(largura_celula, altura_celula)
+        if celula != self.gridSize():
+            self.setGridSize(celula)
         for indice in range(self.count()):
             self.item(indice).setSizeHint(self.tamanho_card())
         capacidade = colunas * linhas
@@ -62,7 +73,7 @@ class GradeJogos(QListWidget):
 
     def tamanho_card(self):
         return QSize(max(1, self.gridSize().width() - 10),
-                     max(270, self.gridSize().height() - 10))
+                     max(110, self.gridSize().height() - 10))
 
 
 class CardsDelegate(QStyledItemDelegate):
@@ -75,11 +86,13 @@ class CardsDelegate(QStyledItemDelegate):
         self._rede = QNetworkAccessManager(self)
         self._pendentes = set()
         self._falhas = set()
+        self._tentativas = {}
 
     def tentar_novamente(self):
         for url in self._falhas:
             self._capas.pop(url, None)
         self._falhas.clear()
+        self._tentativas.clear()
 
     def _carregar_link(self, url):
         if url in self._capas or url in self._pendentes:
@@ -88,10 +101,11 @@ class CardsDelegate(QStyledItemDelegate):
         if endereco.scheme() not in ("http", "https") or not endereco.host():
             return
         self._pendentes.add(url)
+        self._tentativas[url] = self._tentativas.get(url, 0) + 1
         pedido = QNetworkRequest(endereco)
         pedido.setRawHeader(b"User-Agent", b"Mozilla/5.0 TechGames/1.0")
         pedido.setRawHeader(b"Accept", b"image/webp,image/png,image/jpeg,image/*;q=0.8")
-        pedido.setTransferTimeout(10000)
+        pedido.setTransferTimeout(30000)
         resposta = self._rede.get(pedido)
         resposta.downloadProgress.connect(lambda recebidos, total: resposta.abort() if max(recebidos, total) > 10 * 1024 * 1024 else None)
 
@@ -104,6 +118,25 @@ class CardsDelegate(QStyledItemDelegate):
                     mensagem = "O link não retornou uma imagem válida. Use o endereço direto da imagem."
             else:
                 mensagem = resposta.errorString()
+            status = resposta.attribute(QNetworkRequest.Attribute.HttpStatusCodeAttribute)
+            temporario = resposta.error() in (
+                QNetworkReply.NetworkError.TimeoutError,
+                QNetworkReply.NetworkError.TemporaryNetworkFailureError,
+                QNetworkReply.NetworkError.RemoteHostClosedError,
+                QNetworkReply.NetworkError.HostNotFoundError,
+            ) or status == 429 or (isinstance(status, int) and status >= 500)
+            if imagem.isNull() and temporario and self._tentativas[url] < 2:
+                # Mantém como pendente durante a espera para evitar novos pedidos no paint.
+                temporizador = QTimer(self)
+                temporizador.setSingleShot(True)
+                def repetir():
+                    self._pendentes.discard(url)
+                    self._carregar_link(url)
+                    temporizador.deleteLater()
+                temporizador.timeout.connect(repetir)
+                temporizador.start(1500)
+                resposta.deleteLater()
+                return
             if not imagem.isNull():
                 imagem = imagem.scaled(360, 440, Qt.AspectRatioMode.KeepAspectRatio, Qt.TransformationMode.SmoothTransformation)
             else:

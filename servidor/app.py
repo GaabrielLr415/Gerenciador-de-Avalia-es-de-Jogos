@@ -195,7 +195,13 @@ def health():
 @app.get("/jogos")
 def listar_jogos():
     repo = obter_repositorio()
-    return jsonify(repo.listar_jogos()), 200
+    jogos = repo.listar_jogos()
+    if request.args.get("com_medias") == "1":
+        medias = obter_servico().media.consultar_varios(j["id"] for j in jogos)
+        jogos = [{**jogo, "media": medias[jogo["id"]]["media"],
+                  "quantidade_avaliacoes": medias[jogo["id"]]["quantidade"]}
+                 for jogo in jogos]
+    return jsonify(jogos), 200
 
 
 # Rota para buscar um jogo pelo ID

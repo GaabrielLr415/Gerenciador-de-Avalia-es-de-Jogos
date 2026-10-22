@@ -36,6 +36,17 @@ Jogo ou avaliação inexistente nas operações correspondentes retorna 404.
 }
 ```
 
+## Listagem com médias
+
+`GET /jogos?com_medias=1` inclui `media` e `quantidade_avaliacoes` em cada jogo.
+Sem avaliações, os valores são `null` e `0`. A biblioteca Qt usa esta opção para
+carregar o catálogo em uma requisição HTTP, sem consultas individuais de média.
+O servidor lê as avaliações uma vez e calcula os agregados em memória, inclusive
+após reinício ou alteração dos dados. Esses campos não são gravados em jogos.json.
+`GET /jogos` sem o parâmetro mantém a resposta anterior, e a rota individual de
+média continua disponível para os detalhes do jogo. Reinicie o Flask após atualizar.
+As capas permanecem como links em `capa_url`.
+
 ## Jogos
 
 Exemplo de corpo para POST e PUT:

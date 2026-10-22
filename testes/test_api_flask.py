@@ -97,6 +97,45 @@ class APIFlaskTestes(unittest.TestCase):
             ("DELETE", "/avaliacoes/<int:avaliacao_id>"),
         })
 
+    def test_catalogo_com_medias_le_avaliacoes_uma_vez_sem_gravar(self):
+        jogos = [self.repositorio.criar_jogo({**self.dados_jogo(), "nome": f"Jogo {i}"})
+                 for i in range(97)]
+        self.criar_avaliacao(jogos[0]["id"], nota=0)
+        self.criar_avaliacao(jogos[0]["id"], nota=9.5)
+        self.criar_avaliacao(jogos[1]["id"], nota=10)
+        antes = self.arquivos_atuais()
+        with patch.object(self.repositorio, "_ler_lista", wraps=self.repositorio._ler_lista) as leitura:
+            resposta = self.cliente.get("/jogos?com_medias=1")
+        self.assertEqual(resposta.status_code, 200)
+        self.assertEqual(leitura.call_count, 2)  # Uma leitura de jogos e uma de avaliações.
+        dados = resposta.get_json()
+        self.assertEqual(len(dados), 97)
+        self.assertEqual(dados[0], {**jogos[0], "media": 4.75, "quantidade_avaliacoes": 2})
+        self.assertEqual(dados[1]["media"], 10)
+        self.assertEqual(dados[2]["media"], None)
+        self.assertEqual(dados[2]["quantidade_avaliacoes"], 0)
+        self.assertEqual(self.arquivos_atuais(), antes)
+        self.assertEqual(self.cliente.get("/jogos").get_json(), jogos)
+
+    def test_medias_do_catalogo_refletem_edicao_exclusao_e_reinicio(self):
+        jogo = self.criar_jogo()
+        avaliacao = self.criar_avaliacao(jogo["id"], nota=8)
+        def conferir(media, quantidade):
+            listado = self.cliente.get("/jogos?com_medias=1").get_json()[0]
+            individual = self.cliente.get(f"/jogos/{jogo['id']}/media").get_json()
+            self.assertEqual(listado["media"], media)
+            self.assertEqual(listado["quantidade_avaliacoes"], quantidade)
+            self.assertEqual(listado["media"], individual["media"])
+        conferir(8, 1)
+        self.assertEqual(self.cliente.put(f"/avaliacoes/{avaliacao['id']}", json={"nota": 2.5}).status_code, 200)
+        conferir(2.5, 1)
+        self.api.app.config["REPOSITORIO"] = self.criar_repositorio()
+        conferir(2.5, 1)
+        self.assertEqual(self.cliente.delete(f"/avaliacoes/{avaliacao['id']}").status_code, 200)
+        conferir(None, 0)
+        self.assertEqual(self.cliente.delete(f"/jogos/{jogo['id']}").status_code, 200)
+        self.assertEqual(self.cliente.get("/jogos?com_medias=1").get_json(), [])
+
     def test_crud_jogos(self):
         self.assertEqual(self.cliente.get("/jogos").get_json(), [])
         jogo = self.criar_jogo()

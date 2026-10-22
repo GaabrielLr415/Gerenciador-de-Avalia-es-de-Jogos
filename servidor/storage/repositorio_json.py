@@ -332,6 +332,10 @@ class RepositorioJSON:
                 "até a definição da regra de autorização."
             )
 
+    def listar_todas_avaliacoes(self) -> list[dict[str, Any]]:
+        """Lê as avaliações uma única vez para consultas agregadas do catálogo."""
+        return self._ler_lista(self.caminho_avaliacoes)
+
     def listar_avaliacoes(self, jogo_id: int) -> list[dict[str, Any]]:
         """Retorna todas as avaliações associadas a um determinado jogo_id."""
         avaliacoes = self._ler_lista(self.caminho_avaliacoes)

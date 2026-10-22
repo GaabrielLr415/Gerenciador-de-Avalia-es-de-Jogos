@@ -50,6 +50,10 @@ class JanelaPrincipal(QMainWindow):
         if self.perfil:
             self.api.ator_id = self.perfil["id"]
         self.setMinimumSize(900, 650)
+        self._sucesso_timer = QTimer(self)
+        self._sucesso_timer.setSingleShot(True)
+        self._sucesso_timer.setInterval(4000)
+        self._sucesso_timer.timeout.connect(self._limpar_sucesso)
         self._montar_tela()
         self.executor.ocupado_alterado.connect(self._ocupacao)
         self.statusBar().showMessage(f"Servidor: {self.api.base_url}")
@@ -68,7 +72,7 @@ class JanelaPrincipal(QMainWindow):
         self.barra_superior = QFrame()
         self.barra_superior.setObjectName("barra_superior")
         cabecalho = QGridLayout(self.barra_superior)
-        cabecalho.setContentsMargins(20, 14, 20, 14)
+        cabecalho.setContentsMargins(40, 14, 40, 14)
         cabecalho.setSpacing(24)
         cabecalho.setColumnStretch(0, 1)
         cabecalho.setColumnStretch(2, 1)
@@ -169,7 +173,7 @@ class JanelaPrincipal(QMainWindow):
         conteudo = QWidget()
         conteudo.setObjectName("conteudo")
         layout = QVBoxLayout(conteudo)
-        layout.setContentsMargins(20, 24, 20, 16)
+        layout.setContentsMargins(40, 24, 40, 16)
         layout.setSpacing(12)
         self.sucesso = rotulo()
         self.sucesso.hide()
@@ -180,6 +184,9 @@ class JanelaPrincipal(QMainWindow):
         self.progresso = QProgressBar()
         self.progresso.setRange(0, 0)
         self.progresso.setTextVisible(False)
+        politica_progresso = self.progresso.sizePolicy()
+        politica_progresso.setRetainSizeWhenHidden(True)
+        self.progresso.setSizePolicy(politica_progresso)
         self.progresso.hide()
         layout.addWidget(self.progresso)
 
@@ -300,8 +307,14 @@ class JanelaPrincipal(QMainWindow):
         self.lista.setViewMode(QListWidget.ViewMode.IconMode)
         self.lista.setResizeMode(QListWidget.ResizeMode.Adjust)
         self.lista.setMovement(QListWidget.Movement.Static)
-        self.lista.setSpacing(10)
+        self.lista.setSpacing(0)
+        self.lista.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+        self.lista.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
         self.lista.setGridSize(QSize(188, 316))
+        def alinhar_colunas(esquerda_grade, direita_grade):
+            titulo_colecao.setContentsMargins(esquerda_grade, 0, direita_grade, 0)
+            cabecalho.setContentsMargins(40 + esquerda_grade, 14, 40 + direita_grade, 14)
+        self.lista.margens_alteradas.connect(alinhar_colunas)
         self.cards = CardsDelegate(self.lista)
         self.lista.setItemDelegate(self.cards)
         self.cards.falha_capa.connect(self._falha_capa)
@@ -340,7 +353,7 @@ class JanelaPrincipal(QMainWindow):
         self.quantidade = self.janela_detalhes.quantidade
         self.sucesso_detalhes = self.janela_detalhes.sucesso
         self.nova_avaliacao = self.janela_detalhes.nova_avaliacao
-        self.nova_avaliacao.clicked.connect(self.adicionar_avaliacao)
+        self.nova_avaliacao.clicked.connect(self._acao_avaliacao_detalhes)
         self.janela_detalhes.acao_capa.triggered.connect(self.escolher_capa)
         self.janela_detalhes.acao_editar.triggered.connect(self.abrir_edicao_jogo)
         self.janela_detalhes.acao_excluir.triggered.connect(self.remover_jogo)
@@ -401,10 +414,13 @@ class JanelaPrincipal(QMainWindow):
         self._preencher_minhas()
 
     def _ajustar_capacidade_biblioteca(self, capacidade):
+        if capacidade == self.paginacao.por_pagina:
+            return
         inicio = (self.paginacao.pagina - 1) * self.paginacao.por_pagina
         self.paginacao.por_pagina = capacidade
         self.paginacao.pagina = inicio // capacidade + 1
-        self._preencher_biblioteca()
+        # Mudar o tamanho da grade é uma operação visual, não uma nova seleção HTTP.
+        self._preencher_biblioteca(carregar_detalhes=False)
 
     def resizeEvent(self, evento):
         super().resizeEvent(evento)
@@ -428,6 +444,7 @@ class JanelaPrincipal(QMainWindow):
         self.ator_local.setSpecialValueText("—" if self.api.ator_id is None else "")
         if self.jogo is not None:
             self.janela_detalhes.preencher_avaliacoes(self._avaliacoes, self._nome_autor)
+            self._atualizar_acao_avaliacao_detalhes()
 
     def sair_perfil(self):
         if self.executor.ocupado or not self.perfil:
@@ -765,10 +782,7 @@ class JanelaPrincipal(QMainWindow):
         self.erro.hide()
 
         def consultar_catalogo():
-            jogos = self.api.listar_jogos()
-            for jogo in jogos:
-                jogo["media"] = self.api.consultar_media(jogo["id"])["media"]
-            return jogos
+            return self.api.listar_jogos()
 
         self.executor.executar(
             consultar_catalogo,
@@ -810,7 +824,7 @@ class JanelaPrincipal(QMainWindow):
             self.paginacao.pagina = 1
             self._preencher_biblioteca()
 
-    def _preencher_biblioteca(self, selecionar_id=None):
+    def _preencher_biblioteca(self, selecionar_id=None, *, carregar_detalhes=True):
         termo = self.busca.text().strip().casefold()
         jogos = [j for j in self._jogos if termo in " ".join(
             str(j.get(campo, "")) for campo in ("nome", "genero", "plataforma")
@@ -866,7 +880,8 @@ class JanelaPrincipal(QMainWindow):
                 self.sem_resultados.configurar("vazio", "Sua próxima aventura começa aqui",
                     "Adicione seu primeiro jogo para começar sua coleção e publicar avaliações.",
                     "Adicionar jogo")
-        self._selecionar_jogo()
+        if carregar_detalhes:
+            self._selecionar_jogo()
 
     def _selecionar_jogo(self, *_args):
         item = self.lista.currentItem()
@@ -903,7 +918,7 @@ class JanelaPrincipal(QMainWindow):
         self.titulo.setText(jogo["nome"])
         self.informacoes.setText(
             f"{jogo['genero']}  ·  {jogo['plataforma']}  ·  {jogo['ano_lancamento']}")
-        self.descricao.setText(jogo.get("descricao") or "Sem descrição.")
+        self.descricao.setText(jogo.get("descricao") or "A história deste jogo ainda não foi adicionada. Use Editar descrição para completar sua biblioteca.")
         media = agregado["media"]
         item = self.lista.currentItem()
         if item is not None:
@@ -918,10 +933,12 @@ class JanelaPrincipal(QMainWindow):
         self.quantidade.setText(
             f"{agregado['quantidade']} " + ("avaliação" if agregado['quantidade'] == 1 else "avaliações"))
         self._avaliacao_id_selecionada = None
+        self.janela_detalhes.definir_resumo(media)
         self.janela_detalhes.estrelas.definir_nota(media or 0)
         self.janela_detalhes.nota_estrelas.setText(
             f"{media / 2:.2f} de 5".replace(".", ",") if media is not None else "Seja o primeiro a avaliar")
         self.janela_detalhes.preencher_avaliacoes(self._avaliacoes, self._nome_autor)
+        self._atualizar_acao_avaliacao_detalhes()
         self._atualizar_capa_detalhes()
         self.paginas.setCurrentIndex(1)
         self.conexao.setText("Servidor conectado")
@@ -952,6 +969,7 @@ class JanelaPrincipal(QMainWindow):
         self._avaliacao_id_selecionada = avaliacao_id
 
     def _limpar_sucesso(self):
+        self._sucesso_timer.stop()
         self.sucesso.clear()
         self.sucesso.hide()
         self.sucesso_detalhes.clear()
@@ -963,6 +981,7 @@ class JanelaPrincipal(QMainWindow):
         for aviso in (self.sucesso, self.sucesso_detalhes):
             aviso.setText(mensagem)
             aviso.show()
+        self._sucesso_timer.start()
         self.atualizar(selecionar_id=selecionar_id)
 
     def _abrir_formulario(self, formulario, ao_salvar):
@@ -1000,7 +1019,9 @@ class JanelaPrincipal(QMainWindow):
             ), lambda jogo: self._jogo_salvo(jogo, "Jogo atualizado com sucesso."))
 
     def _confirmar(self, titulo, texto):
-        caixa = QMessageBox(self)
+        # A confirmação deve pertencer ao diálogo modal que iniciou a ação.
+        parent = self.janela_detalhes if self.janela_detalhes.isVisible() else self
+        caixa = QMessageBox(parent)
         caixa.setWindowTitle(titulo)
         caixa.setIcon(QMessageBox.Icon.Warning)
         caixa.setTextFormat(Qt.TextFormat.PlainText)
@@ -1021,8 +1042,32 @@ class JanelaPrincipal(QMainWindow):
         if self._confirmar("Excluir jogo", f"Excluir “{jogo['nome']}” e todas as suas avaliações? Esta ação não pode ser desfeita."):
             self._limpar_sucesso()
             self.executor.executar(lambda: self.api.excluir_jogo(
-                jogo["id"]), lambda _: self._operacao_concluida(
-                    "Jogo excluído com sucesso."), self._falha)
+                jogo["id"]), lambda _: self._jogo_excluido(jogo["id"]), self._falha)
+
+    def _jogo_excluido(self, jogo_id):
+        self.janela_detalhes.hide()
+        self.jogo = None
+        self._avaliacoes = []
+        self._avaliar_pendente = None
+        self._avaliacao_id_selecionada = None
+        self.preferencias.remove(f"capas/{jogo_id}")
+        self._operacao_concluida("Jogo excluído com sucesso.")
+
+    def _minha_avaliacao_detalhes(self):
+        if not self.perfil:
+            return None
+        return next((a for a in self._avaliacoes if a.get("autor_id") == self.perfil["id"]), None)
+
+    def _atualizar_acao_avaliacao_detalhes(self):
+        minha = self._minha_avaliacao_detalhes()
+        self.nova_avaliacao.setText("Editar minha avaliação" if minha else "Escrever minha avaliação")
+
+    def _acao_avaliacao_detalhes(self):
+        minha = self._minha_avaliacao_detalhes()
+        if minha:
+            self.abrir_edicao_avaliacao(minha["id"])
+        else:
+            self.adicionar_avaliacao()
 
     def adicionar_avaliacao(self):
         if self.api.ator_id is None and not self.executor.ocupado:

@@ -171,4 +171,13 @@ QPushButton#opcoes_avaliacao {
     background: transparent; padding: 8px 0;
 }
 QPushButton#opcoes_avaliacao:hover { color: #ffd1c7; }
+
+QLabel#titulo_detalhes { color: #ffffff; font-size: 25pt; font-weight: 800; }
+QLabel#nota_principal { color: #f5cf80; font-size: 29pt; font-weight: 800; }
+QLabel#legenda_detalhes { color: #c4bdbe; font-size: 8pt; font-weight: 600; }
+QLabel#avatar_avaliacao { background: #57403f; color: #ffd1c4; border-radius: 19px; font-size: 14pt; font-weight: 700; }
+QLabel#nota_cartao { background: #41483d; color: #c8eb96; border-radius: 8px; padding: 7px 11px; font-size: 12pt; font-weight: 700; }
+QFrame#sobre_detalhes { background: #303540; border-radius: 14px; }
+QPushButton#acao_discreta { color: #e7ada3; background: transparent; border: none; padding: 5px; }
+QPushButton#acao_discreta:hover { color: #ffffff; background: #48404a; }
 """
