@@ -1,10 +1,15 @@
-"""Controle de estrelas com seleção em quartos de estrela."""
+"""Controle de estrelas com seleção em passos de meia estrela."""
 
 import math
 
 from PySide6.QtCore import QPointF, QRectF, QSize, Qt, Signal
 from PySide6.QtGui import QColor, QPainter, QPainterPath, QPen
 from PySide6.QtWidgets import QWidget
+
+
+def nota_em_meias_estrelas(nota):
+    """Arredonda a escala 0–10 para desenhar apenas estrelas cheias ou meias."""
+    return math.floor(max(0.0, min(10.0, float(nota))) + 0.5)
 
 
 class Estrelas(QWidget):
@@ -17,7 +22,7 @@ class Estrelas(QWidget):
         self.setFocusPolicy(Qt.FocusPolicy.StrongFocus)
         self.setCursor(Qt.CursorShape.PointingHandCursor)
         self.setAccessibleName("Nota em estrelas")
-        self.setToolTip("Cada estrela tem quatro partes. Use ← / → para ajustar ¼ de estrela ou Home para zerar.")
+        self.setToolTip("Use meias estrelas ou estrelas completas. ← / → ajustam ½ estrela; Home zera a nota.")
         self._atualizar_acessibilidade()
 
     def sizeHint(self):
@@ -41,14 +46,14 @@ class Estrelas(QWidget):
     def mousePressEvent(self, evento):
         if evento.button() == Qt.MouseButton.LeftButton:
             self.setFocus()
-            self.definir_nota(max(0.5, math.ceil(evento.position().x() / 12) * 0.5))
+            self.definir_nota(max(1, math.ceil(evento.position().x() / 24)))
             evento.accept()
 
     def keyPressEvent(self, evento):
         if evento.key() in (Qt.Key.Key_Right, Qt.Key.Key_Up):
-            self.definir_nota(self._nota + 0.5)
+            self.definir_nota(math.floor(self._nota) + 1)
         elif evento.key() in (Qt.Key.Key_Left, Qt.Key.Key_Down):
-            self.definir_nota(self._nota - 0.5)
+            self.definir_nota(math.ceil(self._nota) - 1)
         elif evento.key() == Qt.Key.Key_Home:
             self.definir_nota(0)
         elif evento.key() == Qt.Key.Key_End:
@@ -72,7 +77,7 @@ class Estrelas(QWidget):
                     estrela.lineTo(posicao)
             estrela.closeSubpath()
             pintor.fillPath(estrela, QColor("#535c6c"))
-            fracao = max(0.0, min(1.0, self._nota / 2 - indice))
+            fracao = max(0.0, min(1.0, nota_em_meias_estrelas(self._nota) / 2 - indice))
             pintor.save()
             pintor.setClipRect(QRectF(indice * 48 + 5, 0, 38 * fracao, 48))
             pintor.fillPath(estrela, QColor("#f5c86a"))
