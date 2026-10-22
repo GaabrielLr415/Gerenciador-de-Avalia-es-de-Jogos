@@ -187,7 +187,10 @@ class ClienteQtTestes(unittest.TestCase):
         formulario.reject()
         self.janela.atualizar()
         self.aguardar_http()
-        self.assertTrue(self.janela.erro.isVisible())
+        self.assertTrue(self.janela.sem_resultados.isVisible())
+        self.assertEqual(self.janela.sem_resultados.modo, "erro")
+        self.assertFalse(self.janela.sem_resultados.imagem.pixmap().isNull())
+        self.assertEqual(self.janela.sem_resultados.botao.text(), "Tentar novamente")
         self.assertTrue(self.janela.botao_atualizar.isEnabled())
 
     def test_busca_e_avaliacao_legada_com_alteracoes_bloqueadas(self):
@@ -217,6 +220,12 @@ class ClienteQtTestes(unittest.TestCase):
         self.aguardar_http()
         self.assertEqual(self.janela.lista.count(), 0)
         self.assertIsNone(self.janela.jogo)
+        self.assertEqual(self.janela.sem_resultados.modo, "busca")
+        QTest.mouseClick(self.janela.sem_resultados.botao, Qt.MouseButton.LeftButton)
+        self.aguardar_http()
+        self.assertEqual(self.janela.busca.text(), "")
+        self.assertEqual(self.janela.lista.count(), 2)
+        self.assertTrue(self.janela.sem_resultados.isHidden())
 
     def test_link_capa_salvo_editado_e_carregado_sem_bloquear(self):
         from http.server import BaseHTTPRequestHandler, HTTPServer
@@ -585,6 +594,28 @@ class ClienteQtTestes(unittest.TestCase):
         self.assertEqual(self.cliente.ator_id, 7)
         self.assertEqual(self.janela.botao_perfil.text(), "A")
 
+    def test_grade_adapta_paginacao_ao_redimensionar(self):
+        self.janela._selecionar_jogo = lambda *args: None
+        self.janela._jogos = [dict(self.dados_jogo(f"Jogo {i:03}"), id=i, media=None)
+                               for i in range(100)]
+        self.janela._preencher_biblioteca()
+        capacidades = []
+        for largura, altura in [(1000, 760), (1920, 1080), (1000, 760)]:
+            self.janela.resize(largura, altura)
+            for _ in range(20):
+                self.qt.processEvents()
+            lista = self.janela.lista
+            capacidade = self.janela.paginacao.por_pagina
+            capacidades.append(capacidade)
+            self.assertEqual(lista.count(), capacidade)
+            self.assertEqual(lista.verticalScrollBar().maximum(), 0)
+            for i in range(lista.count()):
+                retangulo = lista.visualItemRect(lista.item(i))
+                self.assertLess(retangulo.right(), lista.viewport().width())
+                self.assertLess(retangulo.bottom(), lista.viewport().height())
+        self.assertGreater(capacidades[1], capacidades[0])
+        self.assertEqual(capacidades[0], capacidades[2])
+
     def test_filtros_combinados_paginacao_e_logo_voltam_ao_inicio(self):
         for indice in range(25):
             dados = self.dados_jogo(f"Jogo {indice:02}")
@@ -594,15 +625,16 @@ class ClienteQtTestes(unittest.TestCase):
             self.repo.criar_jogo(dados)
         self.janela.atualizar()
         self.aguardar_http()
-        self.assertEqual(self.janela.lista.count(), 12)
-        primeiros = {self.janela.lista.item(i).data(Qt.ItemDataRole.UserRole) for i in range(12)}
+        capacidade = self.janela.paginacao.por_pagina
+        self.assertEqual(self.janela.lista.count(), capacidade)
+        primeiros = {self.janela.lista.item(i).data(Qt.ItemDataRole.UserRole) for i in range(self.janela.lista.count())}
         self.janela.paginacao.ir_para(2)
         self.aguardar_http()
-        seguintes = {self.janela.lista.item(i).data(Qt.ItemDataRole.UserRole) for i in range(12)}
+        seguintes = {self.janela.lista.item(i).data(Qt.ItemDataRole.UserRole) for i in range(self.janela.lista.count())}
         self.assertFalse(primeiros & seguintes)
-        self.janela.paginacao.ir_para(3)
+        self.janela.paginacao.ir_para(self.janela.paginacao.quantidade)
         self.aguardar_http()
-        self.assertEqual(self.janela.lista.count(), 1)
+        self.assertEqual(self.janela.lista.count(), (25 - 1) % capacidade + 1)
         self.janela.filtro_genero.setCurrentIndex(self.janela.filtro_genero.findData("RPG"))
         self.aguardar_http()
         self.assertEqual(self.janela.paginacao.pagina, 1)
@@ -617,8 +649,9 @@ class ClienteQtTestes(unittest.TestCase):
         QTest.mouseClick(self.janela.botao_inicio_logo, Qt.MouseButton.LeftButton)
         self.aguardar_http()
         self.assertEqual(self.janela.conteudo_paginas.currentIndex(), 0)
-        self.assertEqual(self.janela.lista.count(), 12)
-        self.assertEqual(self.janela.paginacao.quantidade, 3)
+        capacidade = self.janela.paginacao.por_pagina
+        self.assertEqual(self.janela.lista.count(), capacidade)
+        self.assertEqual(self.janela.paginacao.quantidade, (25 + capacidade - 1) // capacidade)
         self.assertEqual(self.janela.busca.text(), "")
         self.assertEqual(self.janela.filtro_genero.currentData(), "")
 
@@ -753,5 +786,41 @@ class ClienteQtTestes(unittest.TestCase):
         self.assertEqual(atualizada["nota"], 9)
 
 
+    def test_capas_inteiras_com_fundo_sem_margens(self):
+        from PySide6.QtCore import QRectF
+        from PySide6.QtGui import QColor, QImage, QPainter, QPixmap
+        from cliente.telas.cards import desenhar_capa_preenchida
+        for horizontal in (True, False):
+            with self.subTest(horizontal=horizontal):
+                original = QPixmap(150 if horizontal else 90, 90 if horizontal else 150)
+                original.fill(QColor("green"))
+                pintor = QPainter(original)
+                if horizontal:
+                    pintor.fillRect(0, 0, 50, 90, QColor("red"))
+                    pintor.fillRect(100, 0, 50, 90, QColor("blue"))
+                else:
+                    pintor.fillRect(0, 0, 90, 50, QColor("red"))
+                    pintor.fillRect(0, 100, 90, 50, QColor("blue"))
+                pintor.end()
+                resultado = QImage(100, 100, QImage.Format.Format_RGB32)
+                resultado.fill(QColor("black"))
+                pintor = QPainter(resultado)
+                destino = desenhar_capa_preenchida(pintor, original, QRectF(0, 0, 100, 100))
+                pintor.end()
+                self.assertEqual(resultado.pixelColor(50, 50), QColor("green"))
+                self.assertEqual(resultado.pixelColor(10, 50) if horizontal else resultado.pixelColor(50, 10), QColor("red"))
+                self.assertEqual(resultado.pixelColor(90, 50) if horizontal else resultado.pixelColor(50, 90), QColor("blue"))
+                self.assertNotEqual(resultado.pixelColor(50, 0) if horizontal else resultado.pixelColor(0, 50), QColor("black"))
+                self.assertNotEqual(resultado.pixelColor(50, 99) if horizontal else resultado.pixelColor(99, 50), QColor("black"))
+                self.assertAlmostEqual(destino.width() / destino.height(), original.width() / original.height())
+                # As extremidades da imagem original também ficam visíveis.
+                self.assertEqual(resultado.pixelColor(0, 50) if horizontal else resultado.pixelColor(50, 0), QColor("red"))
+                self.assertEqual(resultado.pixelColor(99, 50) if horizontal else resultado.pixelColor(50, 99), QColor("blue"))
+                self.janela.janela_detalhes.definir_capa(original, "Teste")
+                capa = self.janela.janela_detalhes.capa.pixmap()
+                self.assertEqual(capa.size(), self.janela.janela_detalhes.capa.size())
+
+
 if __name__ == "__main__":
     unittest.main()
+

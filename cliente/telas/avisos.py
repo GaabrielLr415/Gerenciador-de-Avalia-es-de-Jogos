@@ -51,3 +51,54 @@ class AvisoErro(QFrame):
     def text(self):
         return self.mensagem.text()
 
+
+
+class EstadoColecao(QFrame):
+    """Estado vazio ou de falha com imagem local e ação contextual."""
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        from PySide6.QtWidgets import QPushButton
+        self.setObjectName("estado_colecao")
+        self.modo = "vazio"
+        layout = QVBoxLayout(self)
+        layout.setContentsMargins(24, 24, 24, 24)
+        layout.setSpacing(12)
+        layout.addStretch()
+        self.imagem = QLabel()
+        self.imagem.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self.imagem.setAccessibleName("Ilustração do Mario")
+        pixmap = QPixmap(str(Path(__file__).resolve().parents[2] / "imagem" / "500.png"))
+        if not pixmap.isNull():
+            self.imagem.setPixmap(pixmap.scaled(230, 155,
+                Qt.AspectRatioMode.KeepAspectRatio, Qt.TransformationMode.SmoothTransformation))
+        else:
+            self.imagem.hide()
+        layout.addWidget(self.imagem)
+        self.titulo = QLabel()
+        self.titulo.setObjectName("titulo_estado")
+        self.titulo.setWordWrap(True)
+        self.titulo.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        layout.addWidget(self.titulo)
+        self.mensagem = QLabel()
+        self.mensagem.setTextFormat(Qt.TextFormat.PlainText)
+        self.mensagem.setWordWrap(True)
+        self.mensagem.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self.mensagem.setFixedWidth(540)
+        self.mensagem.setMinimumHeight(54)
+        layout.addWidget(self.mensagem, 0, Qt.AlignmentFlag.AlignHCenter)
+        self.botao = QPushButton()
+        self.botao.setObjectName("primario")
+        layout.addWidget(self.botao, 0, Qt.AlignmentFlag.AlignHCenter)
+        layout.addStretch()
+
+    def configurar(self, modo, titulo, mensagem, acao):
+        self.modo = modo
+        self.titulo.setText(titulo)
+        self.mensagem.setText(mensagem)
+        self.mensagem.setMinimumHeight(max(54, self.mensagem.heightForWidth(540)))
+        self.botao.setText(acao)
+        self.setAccessibleName(titulo)
+        self.setAccessibleDescription(mensagem)
+
+    def text(self):
+        return self.mensagem.text()
