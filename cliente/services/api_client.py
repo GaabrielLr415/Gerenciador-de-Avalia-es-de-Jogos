@@ -79,7 +79,7 @@ class APIClient:
 
     
     def listar_jogos(self):
-        return self._request("GET", "/jogos")
+        return self._request("GET", "/jogos", params={"com_medias": "1"})
 
     def buscar_jogo(self, jogo_id):
         return self._request("GET", f"/jogos/{jogo_id}")

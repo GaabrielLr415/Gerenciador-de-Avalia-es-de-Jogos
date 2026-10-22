@@ -100,6 +100,21 @@ class NotaMediaObserver:
         }
         return dict(self._resultados[jogo_id])
 
+    def consultar_varios(self, jogos_ids):
+        """Calcula o catálogo com uma leitura, sem reutilizar médias desatualizadas."""
+        notas_por_jogo = {jogo_id: [] for jogo_id in jogos_ids}
+        if notas_por_jogo:
+            for avaliacao in self.repositorio.listar_todas_avaliacoes():
+                notas = notas_por_jogo.get(avaliacao.get("jogo_id"))
+                if notas is not None:
+                    nota = avaliacao["nota"]
+                    if type(nota) not in (int, float) or not 0 <= nota <= 10:
+                        raise ValueError("Avaliação persistida contém nota inválida.")
+                    notas.append(nota)
+        return {jogo_id: {"jogo_id": jogo_id, "quantidade": len(notas),
+                         "media": mean(notas) if notas else None}
+                for jogo_id, notas in notas_por_jogo.items()}
+
     def consultar(self, jogo_id):
         # Reconstrói após reinício e reconhece gravações de outros serviços.
         return self.atualizar(jogo_id)

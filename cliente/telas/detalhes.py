@@ -1,7 +1,7 @@
 """Detalhes do jogo e avaliações com ações junto de cada registro."""
 
-from PySide6.QtCore import Qt, Signal
-from PySide6.QtGui import QColor
+from PySide6.QtCore import Qt, Signal, QRectF
+from PySide6.QtGui import QColor, QPainter, QPainterPath, QPixmap, QLinearGradient
 from PySide6.QtWidgets import (
     QDialog, QFrame, QGraphicsDropShadowEffect, QHBoxLayout, QLabel, QMenu,
     QPushButton, QScrollArea, QStackedWidget, QVBoxLayout, QWidget,
@@ -29,6 +29,32 @@ def estrelas_leitura(nota, parent=None):
     return estrelas
 
 
+class CabecalhoJogo(QFrame):
+    """Arte atmosférica sem baixar outra imagem nem comprometer a leitura."""
+    def __init__(self):
+        super().__init__()
+        self.imagem = QPixmap()
+
+    def paintEvent(self, evento):
+        super().paintEvent(evento)
+        pintor = QPainter(self)
+        pintor.setRenderHint(QPainter.RenderHint.Antialiasing)
+        caminho = QPainterPath()
+        caminho.addRoundedRect(QRectF(self.rect()), 18, 18)
+        pintor.setClipPath(caminho)
+        pintor.fillRect(self.rect(), QColor("#232731"))
+        if not self.imagem.isNull():
+            suave = self.imagem.scaled(18, 18, Qt.AspectRatioMode.IgnoreAspectRatio,
+                                       Qt.TransformationMode.SmoothTransformation)
+            pintor.setRenderHint(QPainter.RenderHint.SmoothPixmapTransform)
+            pintor.drawPixmap(self.rect(), suave)
+        gradiente = QLinearGradient(0, 0, self.width(), self.height())
+        gradiente.setColorAt(0, QColor(24, 27, 35, 180))
+        gradiente.setColorAt(1, QColor(24, 27, 35, 245))
+        pintor.fillRect(self.rect(), gradiente)
+        pintor.end()
+
+
 class CartaoAvaliacao(QFrame):
     editar = Signal(int)
     excluir = Signal(int)
@@ -40,16 +66,25 @@ class CartaoAvaliacao(QFrame):
         layout = QVBoxLayout(self)
         layout.setContentsMargins(18, 14, 18, 14)
         layout.setSpacing(8)
+        topo = QHBoxLayout()
+        avatar = texto(autor.strip()[:1].upper(), "avatar_avaliacao")
+        avatar.setFixedSize(38, 38)
+        avatar.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        topo.addWidget(avatar)
         self.autor = texto(autor, "autor_avaliacao")
-        layout.addWidget(self.autor)
+        topo.addWidget(self.autor, 1)
+        nota = texto(f"{avaliacao['nota']:g} / 10".replace(".", ","), "nota_cartao")
+        topo.addWidget(nota)
+        layout.addLayout(topo)
         linha_nota = QHBoxLayout()
         linha_nota.setSpacing(14)
         self.estrelas = estrelas_leitura(avaliacao["nota"], self)
+        self.estrelas.setFixedSize(120, 24)
         linha_nota.addWidget(self.estrelas)
-        linha_nota.addWidget(texto(f"{avaliacao['nota']:g} / 10".replace(".", ","), "subtitulo"))
+
         linha_nota.addStretch()
         layout.addLayout(linha_nota)
-        self.comentario = texto(avaliacao.get("comentario") or "Sem comentário.")
+        self.comentario = texto(avaliacao.get("comentario") or "Avaliou este jogo sem adicionar um comentário.")
         self.comentario.setTextInteractionFlags(Qt.TextInteractionFlag.TextSelectableByMouse)
         self.comentario.setAccessibleName("Comentário da avaliação")
         layout.addWidget(self.comentario)
@@ -130,11 +165,13 @@ class DialogoDetalhes(QDialog):
         corpo = QVBoxLayout(conteudo)
         corpo.setContentsMargins(0, 0, 8, 0)
         corpo.setSpacing(18)
-        cabecalho = QHBoxLayout()
-        cabecalho.setSpacing(22)
+        self.hero = CabecalhoJogo()
+        cabecalho = QHBoxLayout(self.hero)
+        cabecalho.setContentsMargins(22, 22, 22, 22)
+        cabecalho.setSpacing(24)
         self.capa = QLabel()
         self.capa.setObjectName("capa_detalhes")
-        self.capa.setFixedSize(140, 196)
+        self.capa.setFixedSize(180, 252)
         self.capa.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self.capa.setAccessibleName("Capa do jogo")
         cabecalho.addWidget(self.capa, 0, Qt.AlignmentFlag.AlignTop)
@@ -142,7 +179,7 @@ class DialogoDetalhes(QDialog):
         resumo.setSpacing(8)
         resumo.setAlignment(Qt.AlignmentFlag.AlignTop)
         linha_titulo = QHBoxLayout()
-        self.titulo = texto(estilo="popup_titulo")
+        self.titulo = texto(estilo="titulo_detalhes")
         linha_titulo.addWidget(self.titulo, 1)
         self.botao_menu = QPushButton("⋯")
         self.botao_menu.setObjectName("menu_jogo")
@@ -159,32 +196,48 @@ class DialogoDetalhes(QDialog):
         resumo.addLayout(linha_titulo)
         self.informacoes = texto(estilo="subtitulo")
         resumo.addWidget(self.informacoes)
+        resumo.addSpacing(10)
+        resumo.addWidget(texto("NOTA DA COMUNIDADE", "legenda_detalhes"))
+        self.nota_principal = texto(estilo="nota_principal")
+        resumo.addWidget(self.nota_principal)
         self.estrelas = estrelas_leitura(0, self)
+        self.estrelas.setFixedSize(150, 30)
         resumo.addWidget(self.estrelas)
         self.nota_estrelas = texto(estilo="nota_detalhes")
-        resumo.addWidget(self.nota_estrelas)
+        self.nota_estrelas.hide()
         linha_media = QHBoxLayout()
         linha_media.setSpacing(16)
         self.media = texto(estilo="subtitulo")
         self.quantidade = texto(estilo="subtitulo")
-        linha_media.addWidget(self.media)
+        self.media.hide()
         linha_media.addWidget(self.quantidade)
         linha_media.addStretch()
         resumo.addLayout(linha_media)
-        self.nova_avaliacao = QPushButton("Avaliar jogo")
+        self.nova_avaliacao = QPushButton("Escrever minha avaliação")
         self.nova_avaliacao.setObjectName("primario")
         resumo.addWidget(self.nova_avaliacao, 0, Qt.AlignmentFlag.AlignLeft)
         cabecalho.addLayout(resumo, 1)
-        corpo.addLayout(cabecalho)
+        corpo.addWidget(self.hero)
         self.sucesso = texto(estilo="sucesso")
         self.sucesso.hide()
         corpo.addWidget(self.sucesso)
-        corpo.addWidget(texto("Sobre o jogo", "secao"))
+        sobre = QFrame()
+        sobre.setObjectName("sobre_detalhes")
+        sobre_layout = QVBoxLayout(sobre)
+        sobre_layout.setContentsMargins(18, 16, 18, 16)
+        titulo_sobre = QHBoxLayout()
+        titulo_sobre.addWidget(texto("Conheça o jogo", "secao"), 1)
+        self.editar_descricao = QPushButton("Editar descrição")
+        self.editar_descricao.setObjectName("acao_discreta")
+        self.editar_descricao.clicked.connect(self.acao_editar.trigger)
+        titulo_sobre.addWidget(self.editar_descricao)
+        sobre_layout.addLayout(titulo_sobre)
         self.descricao = texto()
         self.descricao.setTextInteractionFlags(Qt.TextInteractionFlag.TextSelectableByMouse)
-        corpo.addWidget(self.descricao)
-        corpo.addWidget(texto("Avaliações", "secao"))
-        self.sem_avaliacoes = texto("Este jogo ainda não tem avaliações. Compartilhe sua opinião!", "estado_vazio")
+        sobre_layout.addWidget(self.descricao)
+        corpo.addWidget(sobre)
+        corpo.addWidget(texto("O que estão jogando e dizendo", "secao"))
+        self.sem_avaliacoes = texto("Você já jogou? Conte como foi sua experiência.\nSua avaliação pode ser a primeira deste jogo.", "estado_vazio")
         corpo.addWidget(self.sem_avaliacoes)
         self.avaliacoes_layout = QVBoxLayout()
         self.avaliacoes_layout.setSpacing(12)
@@ -196,7 +249,14 @@ class DialogoDetalhes(QDialog):
         for botao in self.findChildren(QPushButton):
             botao.setAutoDefault(False)
 
+    def definir_resumo(self, media):
+        self.nota_principal.setText(
+            f"{media:.1f} / 10".replace(".", ",") if media is not None else "Sem nota ainda")
+        self.estrelas.setVisible(media is not None)
+
     def definir_capa(self, imagem, nome):
+        self.hero.imagem = imagem
+        self.hero.update()
         if imagem.isNull():
             self.capa.setPixmap(imagem)
             self.capa.setText(nome[:1].upper())

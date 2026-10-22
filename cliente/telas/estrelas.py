@@ -63,6 +63,7 @@ class Estrelas(QWidget):
 
     def paintEvent(self, evento):
         pintor = QPainter(self)
+        pintor.scale(self.width() / 240, self.height() / 48)
         pintor.setRenderHint(QPainter.RenderHint.Antialiasing)
         for indice in range(5):
             centro = QPointF(indice * 48 + 24, 24)
