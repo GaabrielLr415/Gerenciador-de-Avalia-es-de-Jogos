@@ -19,6 +19,20 @@ QLabel#estado_vazio {
     color: #c1c6d0; background: #303540; padding: 22px; border-radius: 12px;
 }
 QFrame#painel { background: #303540; border-radius: 12px; }
+QFrame#painel_filtros { background: #303540; border: 1px solid #697383; border-radius: 12px; }
+QPushButton#botao_filtros { padding: 8px 12px; }
+QPushButton#botao_filtros[ativo="true"] { color: #ffe7e2; background: #503735; border-color: #9e5148; }
+QFrame#cartao_avaliacao { background: #343a46; border: 1px solid #535b69; border-radius: 12px; }
+QLabel#autor_avaliacao { color: #faf7f6; font-weight: 700; font-size: 11pt; }
+QLabel#capa_detalhes { background: #453841; color: #ffb3a7; border-radius: 10px; font-size: 40pt; font-weight: 800; }
+QLabel#nota_detalhes { color: #f5c86a; font-size: 17pt; font-weight: 700; }
+QPushButton#menu_jogo { padding: 0; font-size: 20pt; background: #3b424e; }
+QPushButton#menu_jogo::menu-indicator { image: none; }
+QMenu { background: #353b46; border: 1px solid #697383; padding: 6px; }
+QMenu::item { padding: 9px 16px; border-radius: 6px; }
+QMenu::item:selected { background: #75473f; color: #ffffff; }
+QMenu::item:disabled { color: #cbd0da; }
+QMenu::separator { height: 1px; background: #596271; margin: 5px; }
 QWidget#biblioteca { background: transparent; }
 QLabel#media { color: #c6ef85; font-size: 18pt; font-weight: 600; }
 QLabel#erro {
@@ -45,6 +59,12 @@ QPushButton#primario {
     border-radius: 9px; padding: 10px 18px;
 }
 QPushButton#primario:hover { background: #d34335; border-color: #d34335; }
+QPushButton#avatar_perfil[conectado="true"] {
+    color: #ffffff; background: #bd3c31; border: 1px solid #e27768;
+    border-radius: 20px; padding: 0; font-size: 13pt; font-weight: 700;
+}
+QPushButton#avatar_perfil[conectado="true"]:hover { background: #d04b3e; }
+QPushButton#avatar_perfil::menu-indicator { image: none; width: 0; }
 QPushButton#navegacao {
     padding: 9px 10px; color: #c2c7d0; font-size: 9pt;
     background: transparent; border: 1px solid transparent;
@@ -53,6 +73,13 @@ QPushButton#navegacao:checked {
     color: #ffe7e2; background: #503735; border-color: #9e5148;
 }
 QPushButton#navegacao:hover { background: #433634; }
+QPushButton#logo_inicio {
+    background: transparent; border: 1px solid transparent; padding: 0;
+}
+QPushButton#logo_inicio:hover { border-color: #9e5148; }
+QPushButton#logo_inicio:focus { border-color: #ff8577; }
+QPushButton#pagina { padding: 7px 11px; }
+QPushButton#pagina:checked { color: #ffffff; background: #c83a2e; border-color: #c83a2e; }
 QPushButton#perigo { color: #ffb0b0; }
 QPushButton:disabled { background: #30343d; color: #88909f; border-color: #454b57; }
 QPushButton#primario:disabled { background: #75453f; color: #c6aaa7; border-color: #75453f; }

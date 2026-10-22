@@ -12,7 +12,7 @@ from PySide6.QtWidgets import (
     QPushButton, QScrollArea, QSpinBox, QVBoxLayout, QWidget,
 )
 
-from cliente.telas.estrelas import Estrelas
+from cliente.telas.estrelas import Estrelas, nota_em_meias_estrelas
 
 
 class Formulario(QDialog):
@@ -330,12 +330,13 @@ class FormularioAvaliacao(Formulario):
         self.form.setVerticalSpacing(10)
         self.form.setFormAlignment(Qt.AlignmentFlag.AlignTop)
         registro = avaliacao or {}
+        self._nota_original = float(registro.get("nota", 0))
 
         self.estrelas = Estrelas()
         self.nota = QDoubleSpinBox()
         self.nota.setRange(0, 10)
-        self.nota.setDecimals(2)
-        self.nota.setSingleStep(0.5)
+        self.nota.setDecimals(0 if self._nota_original.is_integer() else 2)
+        self.nota.setSingleStep(1)
         self.nota.setSuffix(" / 10")
         self.nota.setFixedWidth(144)
         self.nota.setObjectName("nota_popup")
@@ -343,12 +344,12 @@ class FormularioAvaliacao(Formulario):
         self.nota.setValue(registro.get("nota", 0))
         self.estrelas.definir_nota(self.nota.value())
         self.estrelas.nota_alterada.connect(self.nota.setValue)
-        self.nota.valueChanged.connect(self.estrelas.definir_nota)
+        self.nota.valueChanged.connect(self._sincronizar_nota)
         self.valor_estrelas = QLabel()
         self.valor_estrelas.setObjectName("subtitulo")
 
         def mostrar_estrelas(nota):
-            self.valor_estrelas.setText(f"{nota / 2:g} / 5".replace(".", ","))
+            self.valor_estrelas.setText(f"{nota_em_meias_estrelas(nota) / 2:g} / 5".replace(".", ","))
         self.estrelas.nota_alterada.connect(mostrar_estrelas)
         mostrar_estrelas(self.nota.value())
 
@@ -428,6 +429,14 @@ class FormularioAvaliacao(Formulario):
         self.area_metadados.setVisible(expandido)
         self.opcoes_metadados.setText(
             "▾ Opções adicionais" if expandido else "▸ Opções adicionais")
+
+    def _sincronizar_nota(self, nota):
+        # Uma edição de comentário não deve arredondar uma nota antiga já salva.
+        arredondada = nota_em_meias_estrelas(nota)
+        if nota != self._nota_original and nota != arredondada:
+            self.nota.setValue(arredondada)
+            return
+        self.estrelas.definir_nota(nota)
 
     def dados(self):
         self.nota.interpretText()

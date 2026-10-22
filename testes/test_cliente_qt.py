@@ -11,7 +11,7 @@ from unittest.mock import patch
 
 os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 
-from PySide6.QtCore import QPoint, QThread, QTimer, Qt
+from PySide6.QtCore import QPoint, QSettings, QThread, QTimer, Qt
 from PySide6.QtTest import QTest
 from PySide6.QtWidgets import QApplication
 from werkzeug.serving import make_server
@@ -50,6 +50,10 @@ class ClienteQtTestes(unittest.TestCase):
         self.thread.start()
         self.addCleanup(self.parar_servidor)
         self.cliente = APIClient(f"http://127.0.0.1:{self.servidor.server_port}")
+        preferencias = patch("cliente.telas.janela_principal.QSettings", side_effect=lambda *_:
+                             QSettings(str(raiz / "preferencias.ini"), QSettings.Format.IniFormat))
+        preferencias.start()
+        self.addCleanup(preferencias.stop)
         self.janela = JanelaPrincipal(self.cliente, carregar=False)
         self.janela.show()
         self.addCleanup(self.fechar_janela)
@@ -104,7 +108,7 @@ class ClienteQtTestes(unittest.TestCase):
         jogo_id = self.janela.jogo["id"]
         self.assertEqual(self.janela.titulo.text(), "Hollow Knight")
         self.janela.abrir_detalhes()
-        QTest.mouseClick(self.janela.editar_jogo, Qt.MouseButton.LeftButton)
+        self.janela.janela_detalhes.acao_editar.trigger()
         formulario = self.janela.dialogo
         formulario.nome.setText("Hollow Knight — edição")
         QTest.mouseClick(formulario.botao_salvar, Qt.MouseButton.LeftButton)
@@ -118,15 +122,15 @@ class ClienteQtTestes(unittest.TestCase):
         QTest.mouseClick(formulario.estrelas, Qt.MouseButton.LeftButton, pos=QPoint(210, 24))
         self.assertEqual(formulario.nota.value(), 9)
         QTest.mouseClick(formulario.estrelas, Qt.MouseButton.LeftButton, pos=QPoint(222, 24))
-        self.assertEqual(formulario.nota.value(), 9.5)
-        self.assertEqual(formulario.valor_estrelas.text(), "4,75 / 5")
+        self.assertEqual(formulario.nota.value(), 10)
+        self.assertEqual(formulario.valor_estrelas.text(), "5 / 5")
         formulario.comentario.setPlainText("Excelente aventura!")
         QTest.mouseClick(formulario.botao_salvar, Qt.MouseButton.LeftButton)
         self.aguardar_http()
         avaliacao = self.repo.listar_avaliacoes(jogo_id)[0]
-        self.assertEqual(avaliacao["nota"], 9.5)
+        self.assertEqual(avaliacao["nota"], 10)
         self.assertEqual(avaliacao["autor_id"], 7)
-        self.assertIn("9,50 / 10", self.janela.media.text())
+        self.assertIn("10,00 / 10", self.janela.media.text())
         self.assertEqual(self.janela.sucesso_detalhes.text(), "Avaliação publicada com sucesso.")
         self.assertTrue(self.janela.sucesso_detalhes.isVisible())
 
@@ -134,8 +138,7 @@ class ClienteQtTestes(unittest.TestCase):
         self.repo.atualizar_avaliacao(avaliacao["id"], {"nota": 9.5, "metadados": {"origem": "teste"}})
         self.janela.atualizar()
         self.aguardar_http()
-        self.janela.tabela.setCurrentCell(0, 0)
-        QTest.mouseClick(self.janela.editar_avaliacao, Qt.MouseButton.LeftButton)
+        QTest.mouseClick(self.janela.janela_detalhes.cartoes[avaliacao["id"]].botao_editar, Qt.MouseButton.LeftButton)
         formulario = self.janela.dialogo
         self.assertFalse(formulario.autor.isEnabled())
         self.assertEqual(formulario.nota.value(), 9.5)
@@ -148,14 +151,14 @@ class ClienteQtTestes(unittest.TestCase):
         self.assertEqual(atualizada["metadados"], {"origem": "teste"})
         self.assertIn("0,00 / 10", self.janela.media.text())
         self.assertEqual(self.janela.sucesso.text(), "Avaliação atualizada com sucesso.")
-        self.janela.tabela.setCurrentCell(0, 0)
+        self.janela._selecionar_avaliacao(avaliacao["id"])
         with patch.object(self.janela, "_confirmar", return_value=False):
             self.janela.remover_avaliacao()
         self.assertIsNotNone(self.repo.buscar_avaliacao(avaliacao["id"]))
         with patch.object(self.janela, "_confirmar", return_value=True):
             self.janela.remover_avaliacao()
         self.aguardar_http()
-        self.assertEqual(self.janela.tabela.rowCount(), 0)
+        self.assertEqual(len(self.janela.janela_detalhes.cartoes), 0)
         self.assertEqual(self.janela.sucesso.text(), "Avaliação excluída com sucesso.")
         self.assertEqual(self.janela.media.text(), "Ainda sem avaliações")
         # A exclusão do jogo também deve atualizar a biblioteca vazia.
@@ -198,12 +201,12 @@ class ClienteQtTestes(unittest.TestCase):
         self.janela.atualizar()
         self.aguardar_http()
         self.assertIn("9,00 / 10", self.janela.media.text())
-        self.janela.tabela.setCurrentCell(0, 0)
-        self.assertFalse(self.janela.editar_avaliacao.isEnabled())
-        self.assertFalse(self.janela.excluir_avaliacao.isEnabled())
-        self.assertEqual(self.janela.comentario.toPlainText(), "Legada")
-        self.janela.tabela.setCurrentCell(1, 0)
-        self.assertTrue(self.janela.editar_avaliacao.isEnabled())
+        legada = self.janela.janela_detalhes.cartoes[1]
+        nova = self.janela.janela_detalhes.cartoes[2]
+        self.assertFalse(legada.botao_editar.isEnabled())
+        self.assertFalse(legada.botao_excluir.isEnabled())
+        self.assertEqual(legada.comentario.text(), "Legada")
+        self.assertTrue(nova.botao_editar.isEnabled())
         QTest.keyClicks(self.janela.busca, "celeste")
         # A busca aguarda a digitação e não dispara HTTP a cada letra.
         self.assertFalse(self.janela.executor.ocupado)
@@ -289,10 +292,10 @@ class ClienteQtTestes(unittest.TestCase):
         self.esperar(lambda: self.janela.dialogo is not None and self.janela.dialogo.isVisible())
         formulario = self.janela.dialogo
         self.assertIn("Segundo", formulario.windowTitle())
-        formulario.nota.setValue(8.5)
+        formulario.nota.setValue(9)
         formulario.enviar()
         self.aguardar_http()
-        self.assertEqual(self.repo.listar_avaliacoes(segundo["id"])[0]["nota"], 8.5)
+        self.assertEqual(self.repo.listar_avaliacoes(segundo["id"])[0]["nota"], 9)
         self.assertEqual(self.repo.listar_avaliacoes(1), [])
         self.assertTrue(self.janela.janela_detalhes.isVisible())
 
@@ -309,11 +312,11 @@ class ClienteQtTestes(unittest.TestCase):
         QTest.mouseClick(estrelas, Qt.MouseButton.LeftButton, pos=QPoint(18, 24))
         self.assertEqual(estrelas.nota, 1)
         QTest.mouseClick(estrelas, Qt.MouseButton.LeftButton, pos=QPoint(222, 24))
-        self.assertEqual(estrelas.nota, 9.5)
+        self.assertEqual(estrelas.nota, 10)
         QTest.keyClick(estrelas, Qt.Key.Key_Left)
         self.assertEqual(estrelas.nota, 9)
         QTest.keyClick(estrelas, Qt.Key.Key_Right)
-        self.assertEqual(estrelas.nota, 9.5)
+        self.assertEqual(estrelas.nota, 10)
         QTest.mouseClick(estrelas, Qt.MouseButton.LeftButton, pos=QPoint(234, 24))
         self.assertEqual(estrelas.nota, 10)
         QTest.keyClick(estrelas, Qt.Key.Key_Right)
@@ -323,6 +326,43 @@ class ClienteQtTestes(unittest.TestCase):
         self.assertEqual(estrelas.nota, 0)
         estrelas.definir_nota(9.5)
         self.assertEqual(estrelas.nota, 9.5)
+        QTest.keyClick(estrelas, Qt.Key.Key_Left)
+        self.assertEqual(estrelas.nota, 9)
+        QTest.keyClick(estrelas, Qt.Key.Key_Right)
+        self.assertEqual(estrelas.nota, 10)
+
+    def test_meias_estrelas_no_formulario_preservam_nota_antiga_ao_editar_comentario(self):
+        jogo = self.repo.criar_jogo(self.dados_jogo())
+        avaliacao = self.repo.criar_avaliacao(jogo["id"], {"autor_id":7, "nota":9.5})
+        self.janela.ator_local.setValue(7)
+        self.janela.atualizar()
+        self.aguardar_http()
+        self.janela.abrir_edicao_avaliacao(avaliacao["id"])
+        formulario = self.janela.dialogo
+        self.assertEqual(formulario.nota.value(), 9.5)
+        formulario.comentario.setPlainText("Somente comentário alterado")
+        formulario.enviar()
+        self.aguardar_http()
+        self.assertEqual(self.repo.buscar_avaliacao(avaliacao["id"])["nota"], 9.5)
+        self.assertIn("9,50 / 10", self.janela.media.text())
+        self.janela.abrir_edicao_avaliacao(avaliacao["id"])
+        formulario = self.janela.dialogo
+        formulario.nota.setValue(8.5)
+        self.assertEqual(formulario.nota.value(), 9)
+        self.assertEqual(formulario.valor_estrelas.text(), "4,5 / 5")
+        formulario.reject()
+        self.janela.adicionar_avaliacao()
+        formulario = self.janela.dialogo
+        self.assertEqual(formulario.nota.singleStep(), 1)
+        self.assertEqual(formulario.nota.decimals(), 0)
+        formulario.nota.setValue(8.5)
+        self.assertEqual(formulario.nota.value(), 9)
+        for nota, x in enumerate(range(12, 240, 24), start=1):
+            QTest.mouseClick(formulario.estrelas, Qt.MouseButton.LeftButton, pos=QPoint(x, 24))
+            self.assertEqual(formulario.nota.value(), nota)
+            self.assertEqual(formulario.estrelas.nota, nota)
+        formulario.reject()
+        self.assertEqual(len(self.repo.listar_avaliacoes(jogo["id"])), 1)
 
     def test_http_nao_bloqueia_eventos_e_callback_roda_na_thread_grafica(self):
         executor = ExecutorHTTP()
@@ -352,8 +392,7 @@ class ClienteQtTestes(unittest.TestCase):
         self.janela.atualizar()
         self.aguardar_http()
         self.janela.ator_local.setValue(8)
-        self.janela.tabela.setCurrentCell(0, 0)
-        self.janela.abrir_edicao_avaliacao()
+        self.janela.abrir_edicao_avaliacao(av["id"])
         formulario = self.janela.dialogo
         formulario.nota.setValue(2)
         formulario.enviar()
@@ -365,7 +404,7 @@ class ClienteQtTestes(unittest.TestCase):
         self.assertEqual(self.repo.buscar_avaliacao(av["id"])["nota"], 8)
         formulario.reject()
         self.janela.ator_local.setValue(99)
-        self.janela.abrir_edicao_avaliacao()
+        self.janela.abrir_edicao_avaliacao(av["id"])
         formulario = self.janela.dialogo
         formulario.nota.setValue(6)
         formulario.metadados.setPlainText('{"origem":"moderacao"}')
@@ -374,9 +413,8 @@ class ClienteQtTestes(unittest.TestCase):
         self.assertEqual(self.repo.buscar_avaliacao(av["id"])["nota"], 6)
         self.assertEqual(self.repo.buscar_avaliacao(av["id"])["metadados"], {"origem":"moderacao"})
         self.assertIn("6,00 / 10", self.janela.media.text())
-        self.janela.tabela.setCurrentCell(0, 0)
         with patch.object(self.janela, "_confirmar", return_value=True):
-            self.janela.remover_avaliacao()
+            self.janela.remover_avaliacao(av["id"])
         self.aguardar_http()
         self.assertIsNone(self.repo.buscar_avaliacao(av["id"]))
         self.assertEqual(self.janela.media.text(), "Ainda sem avaliações")
@@ -405,6 +443,282 @@ class ClienteQtTestes(unittest.TestCase):
         self.assertEqual(self.repo.listar_avaliacoes(jogo["id"]), [])
         formulario.reject()
 
+    def test_detalhes_cartoes_operam_no_registro_correto(self):
+        comentario = "Gostei dos desafios e da exploração. " * 16
+        jogo = self.repo.criar_jogo(self.dados_jogo())
+        primeira = self.repo.criar_avaliacao(jogo["id"], {
+            "autor_id":7, "nota":8, "comentario":comentario, "metadados":{"origem":"primeira"}})
+        segunda = self.repo.criar_avaliacao(jogo["id"], {
+            "autor_id":7, "nota":4, "comentario":"Outra experiência", "metadados":{"origem":"segunda"}})
+        self.entrar_perfil()
+        self.janela.atualizar()
+        self.aguardar_http()
+        self.janela.abrir_detalhes()
+        popup = self.janela.janela_detalhes
+        self.assertTrue(popup.windowFlags() & Qt.WindowType.FramelessWindowHint)
+        self.assertEqual(popup.cartoes[primeira["id"]].autor.text(), "Ana · Você")
+        self.assertEqual(popup.cartoes[primeira["id"]].comentario.text(), comentario.strip())
+        self.assertEqual(popup.nota_estrelas.text(), "3,00 de 5")
+        botao = popup.cartoes[segunda["id"]].botao_editar
+        popup.scroll.ensureWidgetVisible(botao)
+        self.qt.processEvents()
+        QTest.mouseClick(botao, Qt.MouseButton.LeftButton)
+        self.assertEqual(self.janela.dialogo.nota.value(), 4)
+        self.janela.dialogo.nota.setValue(10)
+        self.janela.dialogo.enviar()
+        self.aguardar_http()
+        self.assertEqual(self.repo.buscar_avaliacao(primeira["id"]), primeira)
+        atualizada = self.repo.buscar_avaliacao(segunda["id"])
+        self.assertEqual(atualizada["nota"], 10)
+        self.assertEqual(atualizada["metadados"], {"origem":"segunda"})
+        self.assertEqual(popup.nota_estrelas.text(), "4,50 de 5")
+        with patch.object(self.janela, "_confirmar", return_value=True):
+            popup.cartoes[primeira["id"]].botao_excluir.click()
+        self.aguardar_http()
+        self.assertIsNone(self.repo.buscar_avaliacao(primeira["id"]))
+        self.assertEqual(self.repo.buscar_avaliacao(segunda["id"]), atualizada)
+        self.assertEqual(len(popup.cartoes), 1)
+
+    def test_detalhes_menu_capa_descricao_e_fechamento(self):
+        from PySide6.QtGui import QPixmap
+        jogo = self.repo.criar_jogo(dict(self.dados_jogo(), descricao="<b>Texto literal</b>"))
+        self.janela.atualizar()
+        self.aguardar_http()
+        self.janela.abrir_detalhes()
+        popup = self.janela.janela_detalhes
+        self.assertEqual(popup.descricao.textFormat(), Qt.TextFormat.PlainText)
+        self.assertEqual(popup.descricao.text(), "<b>Texto literal</b>")
+        self.assertTrue(popup.sem_avaliacoes.isVisible())
+        imagem = QPixmap(100, 140)
+        imagem.fill(Qt.GlobalColor.red)
+        caminho = str(self.repo.caminho_jogos.parent / "capa.png")
+        self.assertTrue(imagem.save(caminho))
+        with patch("cliente.telas.janela_principal.QFileDialog.getOpenFileName", return_value=(caminho, "")):
+            popup.acao_capa.trigger()
+        self.assertFalse(popup.capa.pixmap().isNull())
+        self.assertEqual(self.janela.preferencias.value(f"capas/{jogo['id']}"), caminho)
+        QTest.keyClick(popup, Qt.Key.Key_Escape)
+        self.assertFalse(popup.isVisible())
+        self.assertEqual(self.repo.buscar_jogo(jogo["id"]), jogo)
+
+    def entrar_perfil(self, nome="Ana", identificador=7):
+        self.janela.abrir_perfil()
+        dialogo = self.janela.dialogo_perfil
+        dialogo.nome.setEditText(nome)
+        dialogo.identificador.setValue(identificador)
+        QTest.mouseClick(dialogo.entrar, Qt.MouseButton.LeftButton)
+        self.qt.processEvents()
+        self.assertEqual(self.janela.perfil["id"], identificador)
+
+    def test_perfil_local_persiste_e_nao_altera_avaliacoes(self):
+        jogo = self.repo.criar_jogo(self.dados_jogo())
+        original = self.repo.criar_avaliacao(jogo["id"], {"autor_id":7, "nota":8})
+        self.entrar_perfil()
+        self.assertEqual(self.cliente.ator_id, 7)
+        self.assertEqual(self.janela.botao_perfil.text(), "A")
+        self.assertEqual(self.janela.acao_nome_perfil.text(), "Ana")
+        outra = JanelaPrincipal(self.cliente, carregar=False)
+        try:
+            self.assertEqual(outra.perfil, {"nome":"Ana", "id":7})
+            self.assertEqual(outra.ator_local.value(), 7)
+            self.assertTrue(outra.ator_local.isReadOnly())
+        finally:
+            outra.close()
+            outra.deleteLater()
+        self.assertEqual(self.repo.buscar_avaliacao(original["id"]), original)
+        self.janela.abrir_perfil()
+        dialogo = self.janela.dialogo_perfil
+        dialogo.nome.setEditText("Bruno")
+        self.assertNotEqual(dialogo.identificador.value(), 7)
+        dialogo.nome.setEditText("Ana")
+        self.assertEqual(dialogo.identificador.value(), 7)
+        dialogo.reject()
+        self.janela.atualizar()
+        self.aguardar_http()
+        self.janela.adicionar_avaliacao()
+        formulario = self.janela.dialogo
+        self.assertTrue(formulario.autor.isReadOnly())
+        self.assertEqual(formulario.autor.value(), 7)
+        formulario.nota.setValue(9)
+        formulario.enviar()
+        self.aguardar_http()
+        self.assertEqual(self.repo.listar_avaliacoes(jogo["id"])[-1]["autor_id"], 7)
+        with self.assertRaises(ValueError):
+            self.janela.perfis.entrar("", 9)
+        with self.assertRaises(ValueError):
+            self.janela.perfis.entrar("Outra pessoa", 7)
+        with self.assertRaises(ValueError):
+            self.janela.perfis.entrar("Ana", 9)
+
+    def test_avatar_menu_e_saida_preservam_dados_e_limpam_sessao(self):
+        from cliente.telas.perfis import DialogoPerfil
+        jogo = self.repo.criar_jogo(self.dados_jogo())
+        original = self.repo.criar_avaliacao(jogo["id"], {"autor_id":7, "nota":8})
+        self.entrar_perfil()
+        self.janela.abrir_minhas_avaliacoes()
+        self.aguardar_http()
+        self.assertEqual(self.janela.lista_minhas.count(), 1)
+        avatar = self.janela.botao_perfil
+        self.assertEqual(avatar.text(), "A")
+        self.assertEqual(avatar.width(), avatar.height())
+        QTest.mouseClick(avatar, Qt.MouseButton.LeftButton)
+        self.qt.processEvents()
+        self.assertTrue(self.janela.menu_perfil.isVisible())
+        self.assertEqual(self.janela.acao_nome_perfil.text(), "Ana")
+        QTest.mouseClick(self.janela.menu_perfil, Qt.MouseButton.LeftButton,
+                         pos=self.janela.menu_perfil.actionGeometry(self.janela.acao_sair_perfil).center())
+        self.aguardar_http()
+        QTest.qWait(150)
+        self.assertIsNone(self.janela.perfil)
+        self.assertIsNone(self.janela.perfis.ativo())
+        self.assertIsNone(self.cliente.ator_id)
+        self.assertEqual(self.janela.botao_perfil.text(), "Entrar")
+        self.assertEqual(self.janela.lista_minhas.count(), 0)
+        self.assertEqual(self.janela.conteudo_paginas.currentIndex(), 0)
+        self.assertEqual(self.repo.buscar_avaliacao(original["id"]), original)
+        self.assertFalse(any(d.isVisible() for d in self.janela.findChildren(DialogoPerfil)))
+        self.janela.adicionar_avaliacao()
+        self.assertTrue(self.janela.dialogo_perfil.isVisible())
+        self.janela.dialogo_perfil.reject()
+        self.assertEqual(len(self.repo.listar_avaliacoes(jogo["id"])), 1)
+        self.entrar_perfil()
+        self.assertEqual(self.cliente.ator_id, 7)
+        self.assertEqual(self.janela.botao_perfil.text(), "A")
+
+    def test_filtros_combinados_paginacao_e_logo_voltam_ao_inicio(self):
+        for indice in range(25):
+            dados = self.dados_jogo(f"Jogo {indice:02}")
+            dados.update(genero="RPG, Ação" if indice % 2 == 0 else "Plataforma",
+                         plataforma="PC" if indice % 3 == 0 else "PlayStation",
+                         ano_lancamento=2018 + indice % 3)
+            self.repo.criar_jogo(dados)
+        self.janela.atualizar()
+        self.aguardar_http()
+        self.assertEqual(self.janela.lista.count(), 12)
+        primeiros = {self.janela.lista.item(i).data(Qt.ItemDataRole.UserRole) for i in range(12)}
+        self.janela.paginacao.ir_para(2)
+        self.aguardar_http()
+        seguintes = {self.janela.lista.item(i).data(Qt.ItemDataRole.UserRole) for i in range(12)}
+        self.assertFalse(primeiros & seguintes)
+        self.janela.paginacao.ir_para(3)
+        self.aguardar_http()
+        self.assertEqual(self.janela.lista.count(), 1)
+        self.janela.filtro_genero.setCurrentIndex(self.janela.filtro_genero.findData("RPG"))
+        self.aguardar_http()
+        self.assertEqual(self.janela.paginacao.pagina, 1)
+        self.janela.filtro_plataforma.setCurrentIndex(self.janela.filtro_plataforma.findData("PC"))
+        self.aguardar_http()
+        self.janela.filtro_ano.setCurrentIndex(self.janela.filtro_ano.findData("2018"))
+        self.aguardar_http()
+        self.assertEqual(self.janela.lista.count(), 5)
+        self.janela.busca.setText("Jogo 00")
+        self.aguardar_http()
+        self.assertEqual(self.janela.lista.count(), 1)
+        QTest.mouseClick(self.janela.botao_inicio_logo, Qt.MouseButton.LeftButton)
+        self.aguardar_http()
+        self.assertEqual(self.janela.conteudo_paginas.currentIndex(), 0)
+        self.assertEqual(self.janela.lista.count(), 12)
+        self.assertEqual(self.janela.paginacao.quantidade, 3)
+        self.assertEqual(self.janela.busca.text(), "")
+        self.assertEqual(self.janela.filtro_genero.currentData(), "")
+
+    def test_painel_filtros_preserva_escolhas_e_limpa_sem_apagar_busca(self):
+        self.repo.criar_jogo(dict(self.dados_jogo("Alpha PC"), plataforma="PC"))
+        self.repo.criar_jogo(dict(self.dados_jogo("Alpha Console"), plataforma="PlayStation"))
+        self.repo.criar_jogo(self.dados_jogo("Beta"))
+        self.janela.atualizar()
+        self.aguardar_http()
+        self.assertFalse(self.janela.painel_filtros.isVisible())
+        self.janela.busca.setText("Alpha")
+        self.aguardar_http()
+        self.assertEqual(self.janela.lista.count(), 2)
+        QTest.mouseClick(self.janela.botao_filtros, Qt.MouseButton.LeftButton)
+        self.assertTrue(self.janela.painel_filtros.isVisible())
+        combo = self.janela.filtro_plataforma
+        combo.showPopup()
+        self.qt.processEvents()
+        indice = combo.model().index(combo.findData("PC"), 0)
+        QTest.mouseClick(combo.view().viewport(), Qt.MouseButton.LeftButton,
+                         pos=combo.view().visualRect(indice).center())
+        self.aguardar_http()
+        self.assertTrue(self.janela.painel_filtros.isVisible())
+        self.assertEqual(self.janela.lista.count(), 1)
+        self.janela.ordenacao.setCurrentIndex(self.janela.ordenacao.findData("nome"))
+        self.aguardar_http()
+        self.assertEqual(self.janela.botao_filtros.text(), "Filtros · 2")
+        QTest.mouseClick(self.janela.concluir_filtros, Qt.MouseButton.LeftButton)
+        self.assertFalse(self.janela.painel_filtros.isVisible())
+        QTest.mouseClick(self.janela.botao_filtros, Qt.MouseButton.LeftButton)
+        self.assertEqual(combo.currentData(), "PC")
+        self.assertEqual(self.janela.ordenacao.currentData(), "nome")
+        QTest.mouseClick(self.janela.limpar_filtros, Qt.MouseButton.LeftButton)
+        self.aguardar_http()
+        self.assertEqual(self.janela.busca.text(), "Alpha")
+        self.assertEqual(self.janela.lista.count(), 2)
+        self.assertEqual(self.janela.botao_filtros.text(), "Filtros")
+        self.assertEqual(self.janela.ordenacao.currentData(), "cadastro")
+        QTest.keyClick(self.janela.painel_filtros, Qt.Key.Key_Escape)
+        self.qt.processEvents()
+        self.assertFalse(self.janela.painel_filtros.isVisible())
+
+    def test_minhas_avaliacoes_isoladas_por_perfil_e_crud(self):
+        import json
+        jogo = self.repo.criar_jogo(self.dados_jogo())
+        minha = self.repo.criar_avaliacao(jogo["id"], {"autor_id":7, "nota":8, "comentario":"Minha opinião"})
+        outra = self.repo.criar_avaliacao(jogo["id"], {"autor_id":8, "nota":4, "comentario":"Outro perfil"})
+        legada = {"id":50, "jogo_id":jogo["id"], "nota":6, "comentario":"Sem autor"}
+        self.repo.caminho_avaliacoes.write_text(json.dumps([minha, outra, legada]), encoding="utf-8")
+        self.entrar_perfil()
+        QTest.mouseClick(self.janela.botao_minhas, Qt.MouseButton.LeftButton)
+        self.aguardar_http()
+        self.assertEqual(self.janela.lista_minhas.count(), 1)
+        self.assertEqual(self.janela._minha_selecionada()["avaliacao"]["id"], minha["id"])
+        QTest.mouseClick(self.janela.editar_minha, Qt.MouseButton.LeftButton)
+        self.janela.dialogo.nota.setValue(9)
+        self.janela.dialogo.enviar()
+        self.aguardar_http()
+        self.assertEqual(self.repo.buscar_avaliacao(minha["id"])["nota"], 9)
+        self.assertEqual(self.repo.buscar_avaliacao(minha["id"])["autor_id"], 7)
+        with patch.object(self.janela, "_confirmar", return_value=True):
+            self.janela.excluir_minha_avaliacao()
+        self.aguardar_http()
+        self.assertIsNone(self.repo.buscar_avaliacao(minha["id"]))
+        self.assertEqual(self.janela.lista_minhas.count(), 0)
+        self.assertTrue(self.janela.vazio_minhas.isVisible())
+        self.assertEqual(self.repo.buscar_avaliacao(legada["id"]), legada)
+        self.entrar_perfil("Bruno", 8)
+        self.aguardar_http()
+        self.assertEqual(self.janela.lista_minhas.count(), 1)
+        self.assertEqual(self.janela._minha_selecionada()["avaliacao"]["id"], outra["id"])
+        QTest.mouseClick(self.janela.botao_inicio_logo, Qt.MouseButton.LeftButton)
+        self.aguardar_http()
+        self.assertEqual(self.janela.conteudo_paginas.currentIndex(), 0)
+        # A média pública inclui também a avaliação legada (nota 6).
+        self.assertIn("5,00 / 10", self.janela.media.text())
+
+    def test_minhas_paginam_pesquisam_e_tratam_falha_de_rede(self):
+        jogo = self.repo.criar_jogo(self.dados_jogo())
+        for indice in range(8):
+            self.repo.criar_avaliacao(jogo["id"], {"autor_id":7, "nota":indice,
+                                                 "comentario":f"Análise {indice}"})
+        self.entrar_perfil()
+        self.janela.abrir_minhas_avaliacoes()
+        self.aguardar_http()
+        self.assertEqual(self.janela.lista_minhas.count(), 6)
+        self.janela.paginacao_minhas.ir_para(2)
+        self.qt.processEvents()
+        self.assertEqual(self.janela.lista_minhas.count(), 2)
+        self.janela.busca.setText("Análise 3")
+        self.aguardar_http()
+        self.assertEqual(self.janela.lista_minhas.count(), 1)
+        self.assertEqual(self.janela.paginacao_minhas.pagina, 1)
+        self.parar_servidor()
+        self.janela.atualizar()
+        self.aguardar_http()
+        self.assertTrue(self.janela.erro.isVisible())
+        self.assertTrue(self.janela.botao_atualizar.isEnabled())
+        self.assertEqual(len(self.repo.listar_avaliacoes(jogo["id"])), 8)
+
     def test_opcoes_adicionais_preservam_dados_e_revelam_json_invalido(self):
         jogo = self.repo.criar_jogo(self.dados_jogo())
         original = self.repo.criar_avaliacao(jogo["id"], {
@@ -414,8 +728,7 @@ class ClienteQtTestes(unittest.TestCase):
         self.janela.atualizar()
         self.aguardar_http()
         self.janela.ator_local.setValue(7)
-        self.janela.tabela.setCurrentCell(0, 0)
-        self.janela.abrir_edicao_avaliacao()
+        self.janela.abrir_edicao_avaliacao(original["id"])
         formulario = self.janela.dialogo
         self.assertTrue(formulario.opcoes_metadados.isChecked())
         formulario.opcoes_metadados.click()
@@ -431,13 +744,13 @@ class ClienteQtTestes(unittest.TestCase):
 
         formulario.metadados.setPlainText('{"tags":["revisado"]}')
         formulario.opcoes_metadados.click()
-        formulario.nota.setValue(9.5)
+        formulario.nota.setValue(9)
         formulario.enviar()
         self.aguardar_http()
         atualizada = self.repo.buscar_avaliacao(original["id"])
         self.assertEqual(atualizada["metadados"], {"tags": ["revisado"]})
         self.assertEqual(atualizada["autor_id"], 7)
-        self.assertEqual(atualizada["nota"], 9.5)
+        self.assertEqual(atualizada["nota"], 9)
 
 
 if __name__ == "__main__":
