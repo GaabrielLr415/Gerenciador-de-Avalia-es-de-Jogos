@@ -1,6 +1,6 @@
 # Requisitos e critérios de aceitação
 
-Revisão: 21/10/2026. Responsável pelos requisitos: **Edino**; integração e revisão
+Revisão: 24/10/2026. Responsável pelos requisitos: **Edino**; integração e revisão
 final: **Gabriel**; organização documental: **Angélica**.
 
 ## Fontes e alcance
@@ -8,14 +8,18 @@ final: **Gabriel**; organização documental: **Angélica**.
 - [Plano de testes fornecido](../plano_testes_aplicacoes_qt_flask.pdf), páginas 1
   e 10: comportamento observável de um padrão criacional, estrutural e
   comportamental, testes T9.1 a T9.4 e validação da interface, dados e HTTP.
-- [Requisitos registrados por Edino](documentacao/requisitos-e-regras-edino.md):
+- [Requisitos registrados por Edino](historico/requisitos-e-regras-edino.md):
   RF01 a RF09, tecnologias e condições de aceitação.
 - Issues #1 a #5: responsabilidades e escopo acordado pela equipe.
 - Código e testes atuais: evidência técnica da implementação.
+- Enunciado AP2 fornecido pelo usuário: repositório público, servidor Flask,
+  cliente Qt, ausência de banco e serviços externos e execução sem instalar softwares.
 
 Este documento consolida essas fontes para revisão da equipe; não substitui
-um enunciado completo do professor. O PDF não informa data de entrega, formato
-de empacotamento, autenticação real ou exigência de sincronização entre clientes.
+o enunciado do professor. O plano de testes não informa data de entrega,
+autenticação real ou exigência de sincronização entre clientes. O enunciado AP2
+exige execução sem instalação adicional; o [pacote portátil](portatil.md) atende
+essa finalidade, com aceite em outro computador ainda pendente.
 O escopo acordado usa JSON e IDs fictícios, sem login.
 
 ## Requisitos funcionais e evidências
@@ -30,10 +34,15 @@ O escopo acordado usa JSON e IDs fictícios, sem login.
 | RF09 | Persistir dados e preservar IDs após reinício, sem reutilizar IDs excluídos. | `test_campos_persistem_em_outro_processo_python`; `test_ids_nao_reutilizados_apos_cascata_e_reinicio`. |
 | RF10 | Construir avaliações pelo Builder e atualizar média pelo Observer após publicação, edição e exclusão. Sem avaliações, quantidade zero e média nula. | `test_t94_notifica_apos_publicar_editar_excluir`; `test_media_vazia_inexistente_e_reconstruida_apos_reinicio`. |
 | RF11 | Usar HTTP entre Qt e Flask; mostrar sucesso, dados inválidos, acesso negado e falha de conexão; manter formulário após falha. | `test_cliente_qt.py`; `test_integracao_patterns_http.py`. |
+| RF12 | Consultar catálogo com busca, filtros combinados, ordenação e paginação adaptada à janela. | `test_filtros_combinados_paginacao_e_logo_voltam_ao_inicio`; `test_grade_adapta_paginacao_ao_redimensionar`. |
+| RF13 | Guardar perfil local sem senha, trocar/sair sem apagar dados e gerenciar avaliações do perfil com busca/paginação. Consultar Minhas avaliações em uma requisição, independentemente do número de jogos. | `test_minhas_avaliacoes_isoladas_por_perfil_e_crud`; `test_minhas_paginam_pesquisam_e_tratam_falha_de_rede`; `test_minhas_carregam_97_jogos_em_uma_requisicao_por_atualizacao`; testes `test_avaliacoes_por_autor_*`. |
 
 RF01 a RF09 mantêm a numeração do documento de Edino. RF10 e RF11 explicitam
 a integração dos padrões e a apresentação dos resultados; não são funcionalidades
 novas.
+
+RF12 e RF13 registram funcionalidades da interface atual e a otimização de
+consulta por autor; não alteram a numeração do documento histórico de Edino.
 
 ## Cenários obrigatórios do plano
 
@@ -69,7 +78,7 @@ interface. Aprovação automatizada não substitui a revisão visual pelos integ
   do professor, especialmente identificação fictícia e comentário opcional.
 - Equipe: demonstrar T9.1 a T9.4 pelos controles visíveis e conferir legibilidade,
   mensagens, cancelamento e ausência de travamentos.
-- Gabriel e Angélica: testar a instalação em outro computador e confirmar se
-  a entrega exige executável sem Python.
+- Gabriel e Angélica: testar o pacote portátil em outro computador sem Python
+  e registrar telas, resultados e diagramas no Word.
 - Prazo de trabalho adotado: **23/10/2026**, informado pela equipe. O PDF não
   comprova o prazo oficial.

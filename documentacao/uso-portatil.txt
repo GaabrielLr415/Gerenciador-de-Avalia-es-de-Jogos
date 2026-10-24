@@ -1,0 +1,19 @@
+TECHGAMER - VERSAO PORTATIL PARA WINDOWS 64 BITS
+
+1. Extraia o ZIP inteiro para uma pasta do seu computador.
+2. Abra a pasta TechGamer e de dois cliques em TechGamer.exe.
+3. O servidor local e a interface abrem automaticamente.
+
+Python, Flask, Qt e as bibliotecas necessarias acompanham o pacote.
+Nao e preciso instalar dependencias nem abrir um terminal.
+Mantenha a pasta _internal junto do executavel.
+
+Os jogos e as avaliacoes sao salvos em dados/ nesta pasta.
+As preferencias e os perfis locais ficam em preferencias/.
+Use uma pasta em que seu usuario possa salvar arquivos.
+Feche o programa antes de copiar ou mover a pasta.
+
+As capas por URL dependem de internet. As operacoes de cadastro,
+avaliacao, consulta e exclusao usam o servidor local e os arquivos JSON.
+
+Para encerrar, feche a janela do TechGamer. O servidor encerra junto.

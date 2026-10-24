@@ -166,12 +166,6 @@ QPushButton#acao_discreta {
     color: #ffc2b7; background: transparent; border: none; padding: 3px 6px;
 }
 QPushButton#acao_discreta:hover { color: #fff0ec; background: #60443f; }
-QPushButton#opcoes_avaliacao {
-    text-align: left; color: #c1c7d2; border: none;
-    background: transparent; padding: 8px 0;
-}
-QPushButton#opcoes_avaliacao:hover { color: #ffd1c7; }
-
 QLabel#titulo_detalhes { color: #ffffff; font-size: 25pt; font-weight: 800; }
 QLabel#nota_principal { color: #f5cf80; font-size: 29pt; font-weight: 800; }
 QLabel#legenda_detalhes { color: #c4bdbe; font-size: 8pt; font-weight: 600; }

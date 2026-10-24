@@ -250,8 +250,12 @@ class DialogoDetalhes(QDialog):
             botao.setAutoDefault(False)
 
     def definir_resumo(self, media):
-        self.nota_principal.setText(
-            f"{media:.1f} / 10".replace(".", ",") if media is not None else "Sem nota ainda")
+        if media is None:
+            texto_nota = "Sem nota ainda"
+        else:
+            nota = f"{media:.1f}".rstrip("0").rstrip(".").replace(".", ",")
+            texto_nota = f"{nota} / 10"
+        self.nota_principal.setText(texto_nota)
         self.estrelas.setVisible(media is not None)
 
     def definir_capa(self, imagem, nome):

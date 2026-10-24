@@ -103,7 +103,7 @@ class CardsDelegate(QStyledItemDelegate):
         self._pendentes.add(url)
         self._tentativas[url] = self._tentativas.get(url, 0) + 1
         pedido = QNetworkRequest(endereco)
-        pedido.setRawHeader(b"User-Agent", b"Mozilla/5.0 TechGames/1.0")
+        pedido.setRawHeader(b"User-Agent", b"Mozilla/5.0 TechGamer/1.0")
         pedido.setRawHeader(b"Accept", b"image/webp,image/png,image/jpeg,image/*;q=0.8")
         pedido.setTransferTimeout(30000)
         resposta = self._rede.get(pedido)

@@ -1,1 +1,1 @@
-"""Cliente desktop TechGames."""
+"""Cliente desktop TechGamer."""

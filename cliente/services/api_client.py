@@ -1,17 +1,18 @@
+"""HTTP síncrono, executado pelo ExecutorHTTP fora da interface."""
 
 import requests
 
 
 class APIClient:
+    """Traduz operações do cliente em HTTP; não acessa os arquivos JSON."""
+
     def __init__(self, base_url="http://127.0.0.1:5000", ator_id=1):
         self.base_url = base_url.rstrip("/")
         self.timeout = 5
         self.ator_id = ator_id
 
-
     def verificar_servidor(self):
         return self._request("GET", "/health")
-
 
     def _request(self, method, endpoint, **kwargs):
         url = f"{self.base_url}{endpoint}"
@@ -75,9 +76,6 @@ class APIClient:
                 "O servidor retornou uma resposta JSON inválida."
             ) from erro
 
-
-
-    
     def listar_jogos(self):
         return self._request("GET", "/jogos", params={"com_medias": "1"})
 
@@ -105,8 +103,6 @@ class APIClient:
     def excluir_jogo(self, jogo_id):
         return self._request("DELETE", f"/jogos/{jogo_id}")
 
-
-    
     def consultar_media(self, jogo_id):
         return self._request("GET", f"/jogos/{jogo_id}/media")
 
@@ -115,6 +111,9 @@ class APIClient:
             "GET",
             f"/jogos/{jogo_id}/avaliacoes"
         )
+
+    def listar_avaliacoes_por_autor(self, autor_id):
+        return self._request("GET", f"/autores/{autor_id}/avaliacoes")
 
     def cadastrar_avaliacao(self, jogo_id, dados):
         return self._request(
@@ -137,4 +136,3 @@ class APIClient:
             f"/avaliacoes/{avaliacao_id}",
             headers={"X-Ator-Id": str(self.ator_id)}
         )
-    

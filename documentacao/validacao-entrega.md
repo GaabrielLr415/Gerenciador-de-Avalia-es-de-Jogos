@@ -1,195 +1,262 @@
-# Validação da entrega - TechGames
+# Validação da entrega - TechGamer
 
-Data: **21/10/2026**. Base de código: commit `10f48eb`, integrado na `main`
-pelo merge `7d39326` (PR #17). A etapa inicial preparou a documentação local.
-Uma etapa posterior, descrita ao final, adaptou o layout Qt a pedido da equipe.
+Revisão atual: **24/10/2026**. Base: commit `45fcdf4` (merge do PR #21),
+com correções locais de consulta por autor, dependências, documentação e
+organização do código. As alterações desta revisão ainda não foram commitadas
+nem enviadas ao GitHub.
 
-## Ambiente e instalação
+## Resultado manual informado por Gabriel — 24/10/2026
 
-- Windows, 64 bits, Python **3.13.5**.
-- Ambiente virtual novo em diretório temporário, sem reutilizar o `.venv` do projeto.
-- Instalação a partir de `requirements.txt`: aprovada.
-- Dependências principais instaladas: Flask **3.1.3**, PySide6 **6.12.0** e
-  Requests **2.34.2**.
+Gabriel informou: “os testes manuais deram certo”. O resultado geral foi
+registrado como **aprovado conforme relato do responsável pela execução**.
+Não foram informados os resultados individuais de cada cenário, a máquina
+utilizada ou se ela não tinha Python instalado. As capturas e o documento Word
+também não foram apresentados nesta confirmação.
+
+Este registro atualiza o status geral dos testes manuais. A comprovação da
+execução em outro computador sem Python, as evidências no Word e a demonstração
+formal dos cenários T9.1 a T9.4 continuam aguardando confirmação ou registro.
+
+## Nova rodada de testes internos — 24/10/2026, 15h17
+
+A pedido da equipe, os testes internos foram executados novamente. Os testes
+manuais pela interface e o registro das capturas ficam com Gabriel; não foram
+marcados como concluídos por esta execução automatizada.
+
+- **107 testes aprovados em 43,690 segundos**, sem falhas, erros ou ignorados:
+  API 28, Qt com HTTP 33, padrões 13, integração HTTP 10 e persistência 23.
+- A suíte rodou numa cópia temporária com **54 arquivos publicáveis**, sem
+  `.venv/`, `.local/` ou `dist/`, usando o Python do ambiente existente.
+- Hashes antes e depois confirmaram a preservação dos arquivos originais.
+- Sintaxe válida dos **29 arquivos Python** e **65 links locais** conferidos.
+- As **18 dependências** coincidem com `requirements.txt`; `pip check` não
+  encontrou incompatibilidades. A ajuda do cliente também abriu corretamente.
+- Os **96 jogos e 4 avaliações** passaram nas validações de campos, IDs únicos
+  e vínculos entre jogo e avaliação, sem alterar os JSONs.
+- O ZIP `TechGamer-Windows-x64-20261024-151025.zip` passou na verificação de
+  integridade e SHA-256. Extraído numa pasta temporária, o `.exe` rodou com
+  PATH limitado às pastas do Windows, sem variáveis de ambiente Python.
+- A conferência do executável confirmou Qt, logo, HTTP local, cadastro,
+  publicação/edição de avaliação, média, consulta por autor e exclusão em cascata.
+  Usou dados descartáveis; os dados reais e os dados distribuídos no ZIP
+  permaneceram iguais após o teste.
+
+Logs técnicos locais: `.local/testes-internos/20261024-151646/suite-completa.log`
+e `suite-completa.json`, `.local/teste-interno-executavel.json` e
+`.local/teste-interno-estatico.json`. Esses arquivos são ignorados pelo Git;
+este documento registra os resultados destinados à entrega.
+
+Esta rodada não instalou dependências num ambiente novo nem certifica outro
+computador sem Python. Permanecem pendentes o teste manual, as capturas para
+o Word, a conferência visual dos diagramas e a publicação no GitHub.
+
+## Ambiente e dependências
+
+- Windows, 64 bits, Python **3.13.5**, ambiente `.venv` existente.
+- Dependências principais: Flask **3.1.3**, PySide6 **6.12.0** e Requests **2.34.2**.
+- `requirements.txt` fixa as dependências diretas e transitivas presentes neste ambiente.
 - `python -m pip check`: **No broken requirements found.**
-- Código de `servidor/`, `cliente/` e `testes/` copiado para pasta temporária.
-- Dados de teste e preferências Qt isolados; `QSettings` redirecionado para INI
-  temporário. Nenhum cadastro de ensaio foi feito na biblioteca real.
+- `python -m pip install --dry-run --no-index -r requirements.txt`: todos os
+  requisitos já satisfeitos, sem baixar ou alterar pacotes.
 
-As versões acima registram o ambiente testado. `requirements.txt` não fixa
-versões; instalações futuras podem resolver versões diferentes. Python 3.10+
-é a versão mínima declarada, mas somente 3.13.5 foi validado nesta execução.
+A revisão atual verifica o ambiente instalado. Não foi feita nova instalação
+em ambiente vazio ou em outro computador. Python 3.13.5 é a versão efetivamente
+testada; a faixa aceita pelas dependências não representa teste de todas as versões.
 
-## Resultados automatizados
+## Resultados automatizados atuais
 
 | Verificação | Resultado |
-|---|---|
-| API Flask | 23 testes aprovados. |
-| Persistência JSON | 23 testes aprovados. |
-| Builder, Proxy e Observer | 13 testes aprovados. |
-| Integração dos padrões pelas rotas | 10 testes aprovados. |
-| Qt -> HTTP real -> Flask | 11 testes aprovados, sem janela visível. |
-| Total | **80 aprovados; 0 falhas, 0 erros, 0 ignorados.** |
-| Sintaxe | **22 arquivos Python** compilados em memória, sem erro. |
+|---|---:|
+| API Flask | 28 aprovados |
+| Persistência JSON | 23 aprovados |
+| Builder, Proxy e Observer | 13 aprovados |
+| Integração dos padrões por HTTP | 10 aprovados |
+| Qt com HTTP real, sem janela visível | 33 aprovados |
+| **Total** | **107 aprovados; 0 falhas, 0 erros, 0 ignorados** |
 
-A execução completa no ambiente novo levou aproximadamente 19 segundos.
-As falhas simuladas de leitura, gravação, restauração e observadores são
-cenários esperados dos testes. Os testes T9.1 a T9.4 verificam construção,
-persistência, validação, permissões e atualização após eventos.
-
-Comando de descoberta usado pela revisão, em processo com preferências Qt
-redirecionadas e dentro da cópia temporária:
+A execução após a consulta por autor levou **38,410 segundos**. A suíte completa
+foi repetida após a reorganização e após a simplificação do formulário.
+A execução final em cópia isolada levou **44,331 segundos**, com os **107 testes
+aprovados**. Ela inclui o ajuste de exibição das notas inteiras e a regressão
+do ciclo de vida do executor HTTP.
+Comando de descoberta:
 
 ```powershell
-python -B -m unittest discover -s testes -p "test_*.py" -v
+.\.venv\Scripts\python.exe -B -m unittest discover -s testes -p "test_*.py"
 ```
 
-## Conferência adicional com HTTP real
+Os testes usam arquivos temporários. A suíte Qt redireciona o `QSettings`
+para INI temporário e usa servidor HTTP local em porta temporária. Jogos,
+avaliações e preferências reais não são usados para cadastros de ensaio.
+Falhas simuladas de leitura, gravação, restauração e observadores são cenários
+esperados; seus logs não significam que a suíte falhou.
 
-Foram conferidas **27 requisições**, com Flask em processo separado e porta
-local temporária, usando o ambiente recém-instalado:
+## Consulta de Minhas avaliações
 
-- `/health`, cadastro, listagem, consulta, edição e exclusão de jogos.
-- Publicação, listagem, edição e exclusão de avaliações.
-- Duas notas 8 e 6 resultam em média 7.
-- Nota fora da faixa, comentário de tipo inválido e NaN em metadados aninhados
-  retornam 400 e deixam os arquivos inalterados.
-- Ator 8 não pode editar nem excluir avaliação do autor 7: 403 sem gravação.
-- Autor 7 edita nota 8 para 10: média passa a 8, preservando autor, IDs e
-  metadados, mesmo com tentativa de sobrescrever identificadores no corpo.
-- Moderador 99 exclui a nota 6: média passa a 10.
-- Registro inexistente retorna 404.
-- Servidor encerrado e iniciado em outro processo: dados, autor, metadados e
-  média continuam disponíveis; IDs excluídos não são reutilizados.
-- Entrada do cliente Qt executada com o endereço temporário; loop de eventos
-  iniciado e encerrado por temporizador, sem falha. Esse teste usa modo
-  `offscreen` e não constitui inspeção visual humana.
-- Exclusão do jogo remove suas avaliações do JSON na cópia de teste.
+Antes, cada atualização consultava o catálogo e as avaliações de cada jogo:
+com 97 jogos, eram **98 requisições HTTP**. Agora, o Qt consulta
+`GET /autores/<autor_id>/avaliacoes` em **uma requisição por atualização**.
+O servidor lê jogos e avaliações uma vez cada e cruza os registros em memória.
+A resposta inclui os jogos correspondentes e vem em ordem decrescente do ID
+da avaliação. Downloads de capas são operações separadas.
 
-HTTP 500, erros de permissão de arquivos, cascata de avaliações legadas e
-falha dupla de gravação/restauração foram verificados pela suíte automatizada.
-Não foram provocadas falhas nos arquivos reais.
+Evidências acrescentadas nesta revisão:
 
-## Conferência visual por capturas
+- `test_avaliacoes_por_autor_filtra_ordena_e_le_arquivos_uma_vez`: catálogo
+  com 97 jogos, autoria, ordem, campos completos, duas leituras e ausência de
+  gravação; exclui legadas, autor inválido e registros sem jogo correspondente.
+- `test_avaliacoes_por_autor_vazias_e_autor_zero`: ausência de avaliações ou
+  autor desconhecido retorna lista vazia; ID zero retorna 400.
+- `test_avaliacoes_por_autor_refletem_edicao_exclusao_cascata_e_reinicio`:
+  consulta reconhece alteração persistida, reinício, exclusão e cascata.
+- `test_minhas_carregam_97_jogos_em_uma_requisicao_por_atualizacao`: Qt usa
+  uma requisição ao abrir e atualizar a lista; busca não inicia novo HTTP.
 
-Biblioteca (1280 x 850), detalhes do jogo e formulário de avaliação foram
-renderizados e inspecionados com dados fictícios. Textos, botões, campos,
-lista de avaliações e média estavam legíveis nas capturas conferidas.
+Os testes existentes continuam cobrindo troca de perfil, edição/exclusão,
+paginação, busca, falha de rede e preservação de dados. As regras do Proxy
+continuam aplicadas à edição e exclusão individual.
 
-O modo `offscreen` não descobriu fontes do sistema automaticamente. Foram
-carregadas Segoe UI, sua variante em negrito e as fontes de símbolos/emoji
-somente no processo temporário de inspeção. Após esse ajuste do ambiente,
-textos e estrelas foram renderizados corretamente. Não houve alteração no Qt
-do projeto. As capturas não substituem o aceite interativo em uma tela real,
-com a resolução e a escala de exibição usadas na apresentação.
+## Organização e leitura do código
 
-## Conferência documental
+- A montagem da janela foi dividida em métodos por área. `_montar_tela()`
+  apresenta a composição; busca e filtros do catálogo têm etapas identificadas.
+- As validações dos corpos JSON foram extraídas para `servidor/validacoes.py`.
+  As rotas continuam em `servidor/app.py`, usando essas mesmas regras.
+- O fluxo antigo de avaliação direta pelo card, sem chamadas ou sinais ligados,
+  foi removido. O card continua abrindo detalhes, onde o usuário pode avaliar.
+- Foram removidos placeholders `.gitkeep` e um arquivo de saída do Git na raiz.
+  Os documentos em subpastas repetidas foram preservados em `historico/`.
+- O [guia do código](guia-do-codigo.md) explica a ordem de leitura e onde alterar cada parte.
 
-- Requisitos ligados aos testes em [requisitos-e-aceitacao.md](requisitos-e-aceitacao.md).
-- Diagramas com classes reais do servidor e do cliente em
-  [arquitetura-e-padroes.md](arquitetura-e-padroes.md).
-- Instruções de instalação sem necessidade de ativar scripts no PowerShell no
-  [README](../README.md).
-- Contrato alinhado a autor, metadados, Proxy, média e erros tratados.
-- [Roteiro de demonstração](entrega-design-patterns.md) com ações e resultados
-  esperados. A divisão de responsabilidades segue as issues #1 a #5.
-- Classes e métodos exibidos nos diagramas comparados à árvore sintática do
-  código; links locais e blocos Markdown conferidos.
-- Arquivos de código, testes e dados comparados por hash com o estado anterior
-  à revisão: preservados. Somente documentos foram alterados nesta etapa.
+## Formulário de avaliação simplificado
 
-O plano de testes disponível foi lido, e suas páginas 1 e 10 foram conferidas
-visualmente. Ele pede demonstração observável dos padrões e traz os títulos
-T9.1 a T9.4, mas não fixa prazo nem exige executável. Os detalhes do roteiro
-foram adaptados ao contrato implementado, conforme orientação do próprio plano.
+O editor de metadados JSON e a seção Opções adicionais foram removidos do Qt.
+O formulário apresenta estrelas, nota, comentário opcional e identificação local
+do autor. O suporte a metadados continua na API, no Builder e no armazenamento.
+O formulário omite esse campo nas requisições: novas avaliações recebem `{}` e
+edições preservam os valores atuais no servidor, sem reenviar uma cópia antiga.
+
+Os testes Qt de cadastro e edição foram adaptados para conferir o formulário
+sem editor JSON, os campos enviados e a preservação de metadados alterados
+depois da abertura do formulário. O teste de moderação também confere a
+preservação desses dados. As validações de JSON permanecem cobertas pela API,
+pelo repositório e pelos padrões.
+
+As primeiras execuções após essa mudança foram interrompidas por uma falha
+nativa do Qt. O encerramento das janelas de teste foi ajustado para aguardar
+as tarefas e processar as exclusões adiadas antes do próximo caso. A checagem
+final em cópia isolada voltou a reproduzir a falha e motivou a correção do
+executor descrita abaixo.
+
+Capturas offscreen do cadastro em 580 x 660 e da edição em 540 x 500 foram
+inspecionadas com dados fictícios. O editor técnico não aparece; as ações ficam
+visíveis e os campos podem ser rolados no tamanho compacto.
+
+Os documentos principais refletem a navegação atual: Início, Minhas avaliações,
+Atualizar, busca e avatar; filtros e Adicionar jogo junto à coleção; detalhes
+abertos pelo card; perfis locais sem senha; paginação adaptável à janela.
+A logo SVG existente e os formatos alternativos estão descritos no README do
+cliente. Contrato, diagramas e matriz de requisitos incluem a consulta por autor.
+
+A conferência desta revisão usou testes, leitura do código e as capturas do
+formulário descritas acima. Não houve inspeção visual interativa de toda a aplicação.
+
+## Checagem final em cópia isolada
+
+Foram copiados **49 arquivos** que compõem a árvore publicável, considerando os
+arquivos novos e as exclusões locais. `.git/`, `.venv/`, `.local/`, logs e caches
+ficaram fora da cópia. Os testes rodaram nessa pasta temporária, com o Python e
+as dependências já instaladas. Não se trata de uma nova instalação de pacotes.
+
+A falha nativa foi reproduzida em um programa pequeno que criava e encerrava
+executores repetidamente. Os objetos de sinais agora pertencem ao executor
+na thread gráfica, a conclusão usa conexão enfileirada e a liberação usa
+`deleteLater()`. Esse tratamento segue as regras de propriedade e threads de
+[QObject](https://doc.qt.io/qt-6/qobject.html) e
+[QThreadPool](https://doc.qt.io/qt-6/qthreadpool.html).
+
+O programa que falhava passou por **300 ciclos** após a correção. Foi acrescentado
+`test_executor_pode_ser_encerrado_apos_sucesso_ou_falha_sem_erro_nativo`, que executa
+100 ciclos alternando sucesso e falha em subprocesso, verifica callbacks na
+thread gráfica e exige saída normal. A suíte completa terminou com 107 aprovados.
+
+Também passaram: `python -m cliente --help`, `pip check`, sintaxe de todos os
+arquivos Python, links locais da documentação e conferência das versões fixadas.
+Hashes dos arquivos locais antes e depois da execução confirmaram sua preservação.
+Os dados atuais passaram nas validações: **96 jogos e 4 avaliações**, IDs únicos,
+referências válidas entre registros e campos compatíveis com a API. Nenhum jogo
+estava com a descrição vazia nessa conferência.
+
+## Histórico das revisões anteriores
+
+Em 21/10/2026, o relatório anterior registrou instalação em ambiente virtual
+novo, 27 requisições de conferência com Flask em processo separado e inspeção
+de capturas offscreen da biblioteca, detalhes e formulários. As etapas de
+layout/popup elevaram a suíte de 80 para 81 testes. A revisão histórica de
+22/10/2026 registrou 95 testes e a otimização do catálogo; esse trabalho foi
+integrado pelo PR #21. Essas contagens correspondem ao código de cada época.
+A referência atual é a tabela de **107 testes** acima.
+
+Essas evidências anteriores não substituem o aceite humano da interface atual
+ou uma instalação em outra máquina. O [registro de 22/10](revisao-issues-2026-10-22.md)
+preserva a auditoria das issues daquela data; nenhuma issue foi atualizada
+ou encerrada nesta revisão.
 
 ## Aceite que ainda depende da equipe
 
-Não considerar os itens abaixo aprovados apenas pelo resultado dos testes:
+- [ ] Edino e Gabriel: conferir o escopo com o enunciado completo, incluindo
+  identificação fictícia, comentário opcional e links de capas.
+- [ ] Confirmar com o professor o prazo oficial. O planejamento da equipe usava
+  23/10/2026; o enunciado não fixa a data.
+- [x] Gerar e conferir o pacote portátil Windows, incluindo Python, Flask e Qt.
+- [x] Receber o resultado geral dos testes manuais: Gabriel informou aprovação em 24/10/2026.
+- [ ] Abrir o pacote em outro computador sem Python e registrar a execução no Word.
+- [ ] Registrar os resultados por cenário, as capturas e a resolução/escala usada nos testes manuais.
+- [ ] Ensaiar a apresentação e definir as falas de cada integrante.
+- [ ] Revisar e integrar as alterações locais.
 
-- [ ] Edino e Gabriel: comparar o escopo com o enunciado completo, incluindo
-  uso de IDs fictícios, comentário opcional e eventual uso de links de capas.
-- [ ] Confirmar com o professor se exige executável sem instalação de Python.
-  Em 21/10/2026, a equipe informou que isso ainda não foi confirmado.
-- [ ] Confirmar o prazo oficial. O planejamento usa **23/10/2026**, informado
-  pela equipe; o PDF não estabelece a data.
-- [ ] Instalar a partir do README em **outro computador**, sem copiar `.venv`.
-- [ ] Executar o roteiro pelos controles visíveis: legibilidade, navegação,
-  mensagens, confirmação/cancelamento e comportamento durante falha de conexão.
-- [ ] Ensaiar a apresentação e definir quais partes cada integrante explicará.
-- [ ] Revisar as alterações locais antes dos commits manuais.
+## Preparação dos arquivos para o GitHub
 
-### Registro da validação presencial
+As notas de consultas da internet e o backup `.patch` foram preservados em
+`.local/`, ignorada pelo Git. O arquivo `.notas-internet.json` saiu da raiz
+versionada. O ambiente `.venv/`, caches, logs e contadores locais também são
+ignorados; bibliotecas instaladas não fazem parte dos arquivos versionados.
+Sintaxe, links da documentação, dependências e integridade dos JSONs foram conferidos.
+
+Os arquivos `dados/jogos.json` e `dados/avaliacoes.json` têm alterações locais
+da biblioteca e foram preservados. Devem ser revisados antes de incluí-los no
+commit. Nenhum commit, push ou alteração de issue foi feito nesta preparação.
 
 | Item | Integrante / data | Resultado ou ajuste necessário |
 |---|---|---|
-| Instalação em outro computador | A preencher | Pendente. |
-| CRUD de jogos e avaliações pela interface | A preencher | Pendente de aceite visual. |
-| T9.1 e T9.2 | A preencher | Pendente de demonstração presencial. |
-| T9.3 e T9.4 | A preencher | Pendente de demonstração presencial. |
-| Reinício e falha de conexão | A preencher | Pendente de aceite visual. |
-| Formato e prazo da entrega | A preencher | Confirmar com o professor. |
+| Pacote portátil nesta máquina | 24/10/2026 | Executável, HTTP, Qt e CRUD aprovados; ver portatil.md |
+| Testes manuais, resultado geral | Gabriel / 24/10/2026 | Aprovados conforme relato; sem evidências anexadas |
+| Execução em outro computador sem Python | A preencher | Não informada na confirmação manual |
+| CRUD pela interface, navegação e mensagens | A preencher | Resultado individual não registrado; aprovação geral informada acima |
+| T9.1 a T9.4 | A preencher | Pendente de demonstração presencial |
+| Reinício e falha de conexão | A preencher | Resultado individual não registrado |
+| Formato e prazo da entrega | A preencher | Confirmar com o professor |
 
 ## Limites conhecidos
 
 Não há transação entre arquivos nem bloqueio global de gravações simultâneas.
-A restauração de cascata é uma tentativa e pode falhar. IDs locais não
-autenticam usuários. Não há executável empacotado validado. Esses limites estão
-documentados e devem ser explicados no escopo acadêmico, sem prometer garantias
-que o código não oferece.
+A restauração da cascata é uma tentativa e pode falhar. IDs locais não autenticam
+usuários; a consulta por autor é pública, assim como a consulta por jogo.
+Não há sincronização automática entre clientes. O pacote Windows foi conferido
+nesta máquina; sua validação manual em outro computador permanece pendente.
+Reinicie Flask e Qt após atualizar o código para usar a nova rota.
 
-## Revisão posterior da interface
+## Execução sem instalação adicional
 
-A interface recebeu identificação visual própria, destaques vermelhos e fundo
-cinza escuro mais suave. Após revisão
-do layout, a navegação foi colocada em uma barra horizontal no topo, com marca,
-Início, Atualizar, Detalhes, busca e Adicionar jogo. Foram removidos a coluna
-lateral e os títulos que apresentavam a tela como biblioteca. Os cards mantêm
-capas e médias. Início limpa a pesquisa; Detalhes fica indisponível quando não
-há um jogo carregado. Identificação local e estado da conexão ficam no rodapé.
+O enunciado exige execução sem instalar outros softwares. Foi preparado o pacote
+`TechGamer-Windows-x64-20261024-151025.zip`, com interpretador e dependências
+incluídos, iniciado por `TechGamer.exe`. A extração do ZIP foi testada numa pasta
+temporária, com Python removido do PATH e variáveis de ambiente Python removidas.
+O executável confirmou Qt, logo, HTTP, cadastro, avaliação, edição, média e
+exclusão em cascata com dados temporários. Os dados reais foram preservados.
+A suíte completa continuou com 107 aprovados após essas alterações.
 
-Arquivos de código alterados nesta etapa: `cliente/telas/janela_principal.py`,
-`cliente/telas/tema.py` e `cliente/telas/cards.py`. O backend, o armazenamento
-JSON e a comunicação HTTP não foram alterados. O armazenamento das capas
-também permanece igual: caminho local nas preferências Qt ou URL no JSON.
-
-A suíte completa foi repetida: **80 aprovados, sem falhas, erros ou ignorados**.
-Biblioteca, busca sem resultado, retorno à coleção e detalhes foram conferidos
-com dados fictícios. Capturas em **1440 x 900** e **900 x 650** foram inspecionadas;
-busca, ações e controles superiores permaneceram dentro da janela. As fontes
-foram carregadas apenas no processo temporário de inspeção `offscreen`.
-
-As alterações permanecem locais. Nenhum commit, push, PR ou merge foi executado
-nestas etapas.
-
-## Revisão do popup de avaliação
-
-O formulário de avaliação recebeu painel com cantos arredondados, cabeçalho e
-botão de fechamento próprios, título do jogo também na edição e destaque para
-estrelas e nota numérica. Comentário e autor continuam disponíveis; os metadados
-ficam numa seção recolhível. Em erro de JSON, essa seção é aberta e o editor
-é trazido à área visível. Os botões permanecem fora da área de rolagem.
-
-O formulário de jogos também recebeu o painel moderno, com campos reorganizados
-e seção de capa local/link. As prévias de cadastro, edição e tamanho compacto
-foram inspecionadas; os campos rolam sem retirar as ações da área visível.
-O fechamento durante salvamento continua bloqueado; uma falha mantém os valores e reabilita as ações.
-O fluxo de HTTP, JSON e regras de avaliação não foi alterado.
-
-Foi adicionado um teste de integração Qt para comprovar que recolher os metadados
-não descarta valores, que JSON inválido é revelado sem gravação e que uma edição
-válida preserva o autor. O total passou a **81 testes aprovados**, sem falhas,
-erros ou ignorados. Capturas do popup normal e do erro foram conferidas com
-fontes carregadas no processo de teste, dados fictícios e preferências temporárias.
-
-## Logo e paleta
-
-Os destaques de navegação, botões, foco e seleção foram alinhados ao vermelho.
-O fundo principal é cinza escuro (`#282b33`), com painéis e campos mais claros.
-Notas mantêm suas cores de leitura. Os 81 testes continuaram aprovados.
-
-O cabeçalho está preparado para a logo em `imagem/logo.png` (também aceita
-WebP/JPG/JPEG). O carregamento foi conferido com uma imagem temporária de teste,
-inclusive na janela de 900 x 650 e sem depender do diretório atual. Essa imagem
-de teste não substitui a logo da equipe. Na revisão, a pasta `imagem/` estava
-vazia e o caminho do arquivo original enviado na conversa foi solicitado.
+Consulte [pacote portátil e procedimento de teste](portatil.md). A exigência tem
+uma solução implementada e conferida localmente; o aceite final depende do teste
+manual num computador sem Python, das evidências no Word e da disponibilização
+do ZIP junto ao repositório público. Nenhuma publicação foi feita nesta etapa.

@@ -1,4 +1,4 @@
-# Cliente Qt — TechGames
+# Cliente Qt — TechGamer
 
 Interface PySide6 integrada ao Flask por `services/api_client.py`. A aplicação
 permite buscar, cadastrar, editar e excluir jogos e avaliações. Os dados são
@@ -6,7 +6,7 @@ sempre consultados pela API; a interface não acessa os arquivos JSON.
 
 ## Executar
 
-Na raiz do projeto, com Python 3.10+ e as dependências instaladas:
+Na raiz do projeto, com Python 3.10 a 3.15 (validado em 3.13.5):
 
 ```powershell
 python -m pip install -r requirements.txt
@@ -25,29 +25,43 @@ Também é possível iniciar com `python cliente/main.py`. Para outro endereço:
 python -m cliente --servidor http://127.0.0.1:5000
 ```
 
-## Avaliações por estrelas
+## Navegação e perfis
 
-A tela usa uma barra horizontal no topo com marca, Início, Atualizar, Detalhes,
-busca e Adicionar jogo. O tema usa destaques vermelhos e fundo cinza escuro; não há tela de login
-nem títulos de apresentação da biblioteca. A identificação local e o estado da
-conexão ficam no rodapé. A grade de capas se ajusta à largura da janela.
-O cabeçalho carrega a logo de `imagem/logo.png` na raiz do projeto, preservando
-as proporções. Também aceita `logo.webp`, `logo.jpg` ou `logo.jpeg` nessa pasta.
+A barra superior contém marca, **Início**, **Minhas avaliações**, **Atualizar**,
+busca e avatar do perfil. **Adicionar jogo** e **Filtros** ficam junto à coleção.
+Os filtros combinam gênero, plataforma e ano; a ordenação permite cadastro,
+nome, maior nota ou lançamento. Limpar filtros preserva a busca; Início ou a
+logo retornam ao catálogo sem filtros. A grade e sua paginação se ajustam à janela.
+O tema usa destaques vermelhos e fundo cinza escuro. Estado da conexão e ID
+local ficam no rodapé.
+
+Na primeira abertura sem perfil ativo, o aplicativo solicita nome e ID local.
+O menu do avatar permite trocar perfil ou sair. Os perfis ficam no `QSettings`
+deste computador; não há senha ou autenticação real. Sair encerra a identificação
+ativa e preserva os dados. **Minhas avaliações** lista somente avaliações do ID
+do perfil ativo, permite buscar por jogo/comentário, paginar, editar e excluir.
+A atualização usa uma requisição HTTP para receber avaliações e seus jogos;
+busca e paginação dessa lista são locais. Reinicie Flask e Qt após atualizar.
+
+O cabeçalho busca a logo na pasta `imagem/`, na ordem: `logo.svg`,
+`logo techgamer.svg.svg`, `logo.png`, `logo.webp`, `logo.jpg` e `logo.jpeg`.
+O primeiro arquivo existente é usado, preservando as proporções.
 O caminho é resolvido a partir do código, sem depender da pasta do terminal.
 Se o arquivo estiver ausente ou inválido, a identificação textual permanece.
 A média das avaliações aparece em um indicador circular. Clique em um
 card para consultar suas avaliações e comentários. Nessa janela, use
 **Avaliar jogo** para criar uma avaliação com estrelas, nota e comentário.
 O popup de avaliação tem cabeçalho próprio, fechamento por botão ou Esc e
-nota numérica sincronizada às estrelas. Os metadados ficam em **Opções adicionais**;
-recolher a seção preserva os valores. Dados inválidos revelam o editor e exibem
-o erro sem fechar o formulário. Em janelas menores, os campos podem ser rolados,
+nota numérica sincronizada às estrelas, comentário opcional e identificação do autor.
+O formulário não exibe campos técnicos de JSON. Em janelas menores, os campos podem ser rolados,
 mantendo os botões de ação disponíveis.
 Os formulários de adicionar e editar jogos usam o mesmo painel arredondado,
 com campos identificados acima dos controles, gênero/plataforma/ano agrupados
 e uma seção própria para selecionar a capa local ou informar seu link.
-O botão **Detalhes do jogo** abre uma janela separada com as avaliações anteriores
-e as opções de editar e excluir.
+Clique em um card para abrir a janela de detalhes, com descrição, média,
+avaliações e comentários. O menu dessa janela permite escolher capa, editar
+ou excluir o jogo. A ação principal permite criar uma avaliação ou editar
+a avaliação já existente do perfil naquele jogo.
 Em **Escolher capa**, selecione uma imagem PNG, JPG ou WebP do computador.
 A preferência da capa local fica salva neste computador, sem alterar os dados da API.
 O aplicativo guarda o caminho escolhido, sem copiar a imagem. Os arquivos podem
@@ -63,6 +77,8 @@ reinicie o processo Flask; o cliente avisa se o servidor ainda não suporta capa
 Mantenha o arquivo de imagem no local escolhido. Jogos sem capa usam uma arte
 provisória com o nome; jogos sem avaliações exibem um traço no indicador.
 
+## Avaliações por estrelas
+
 - Cinco estrelas correspondem à nota 10; um quarto de estrela corresponde a 0,5 ponto.
 - Clique em uma das quatro partes da estrela ou use as setas do teclado.
   Por exemplo, 4,75 estrelas correspondem à nota 9,5/10.
@@ -74,9 +90,9 @@ provisória com o nome; jogos sem avaliações exibem um traço no indicador.
   nem autenticação. Para editar ou excluir, escolha o ator local na janela:
   autor ou moderador fictício 99. O cliente envia `X-Ator-Id` e o Proxy do
   servidor bloqueia terceiros com HTTP 403.
-- A edição mantém o autor e permite editar os metadados como objeto JSON.
-  O formulário envia o conteúdo exibido; `{}` limpa os metadados. Na API,
-  omitir o campo durante a edição preserva o objeto anterior.
+- A edição mantém o autor e os metadados já salvos. O formulário envia apenas
+  nota e comentário; o servidor preserva os metadados atuais. No cadastro,
+  os metadados recebem o padrão `{}`. O campo continua disponível pela API.
 - Avaliações antigas sem autor ficam disponíveis para leitura, com edição e
   exclusão individual desabilitadas conforme a regra atual do servidor.
 
@@ -101,8 +117,9 @@ python -m unittest discover -s testes -p "test_cliente_qt.py" -v
 
 Os testes usam Qt sem janela visível, servidor HTTP local em porta temporária e
 arquivos temporários. Cobrem CRUD pelos formulários, conversão de estrelas,
-precisão decimal, atualização da média, busca, avaliações legadas, falha de rede
-e resposta do loop de eventos durante requisições.
+precisão decimal, atualização da média, busca, filtros, paginação, perfis locais,
+Minhas avaliações em uma requisição, avaliações legadas, falha de rede e resposta
+do loop de eventos durante requisições.
 
 Roteiro manual para apresentação:
 

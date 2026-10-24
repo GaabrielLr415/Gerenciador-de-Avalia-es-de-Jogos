@@ -79,7 +79,7 @@ class APIFlaskTestes(unittest.TestCase):
 
     def test_health_e_endpoints_preservados(self):
         self.assertEqual(self.cliente.get("/health").get_json(), {
-            "status": "ok", "aplicacao": "TechGames", "recursos": ["capa_url", "design_patterns", "media_servidor"],
+            "status": "ok", "aplicacao": "TechGamer", "recursos": ["capa_url", "design_patterns", "media_servidor"],
         })
         rotas = {
             (metodo, regra.rule)
@@ -92,6 +92,7 @@ class APIFlaskTestes(unittest.TestCase):
             ("DELETE", "/jogos/<int:jogo_id>"),
             ("GET", "/jogos/<int:jogo_id>/avaliacoes"),
             ("GET", "/jogos/<int:jogo_id>/media"),
+            ("GET", "/autores/<int:autor_id>/avaliacoes"),
             ("POST", "/jogos/<int:jogo_id>/avaliacoes"),
             ("PUT", "/avaliacoes/<int:avaliacao_id>"),
             ("DELETE", "/avaliacoes/<int:avaliacao_id>"),
@@ -135,6 +136,54 @@ class APIFlaskTestes(unittest.TestCase):
         conferir(None, 0)
         self.assertEqual(self.cliente.delete(f"/jogos/{jogo['id']}").status_code, 200)
         self.assertEqual(self.cliente.get("/jogos?com_medias=1").get_json(), [])
+
+    def test_avaliacoes_por_autor_filtra_ordena_e_le_arquivos_uma_vez(self):
+        jogos = [self.repositorio.criar_jogo({**self.dados_jogo(), "nome": f"Jogo {i}"})
+                 for i in range(97)]
+        primeira = self.criar_avaliacao(jogos[0]["id"], nota=0)
+        self.criar_avaliacao(jogos[0]["id"], autor_id=8)
+        ultima = self.criar_avaliacao(jogos[-1]["id"], metadados={"tags": ["campanha"]})
+        avaliacoes = self.repositorio.listar_todas_avaliacoes()
+        avaliacoes.extend([
+            {"id": 100, "jogo_id": jogos[0]["id"], "nota": 5},
+            {"id": 101, "jogo_id": 9999, "autor_id": 7, "nota": 8},
+            {"id": 102, "jogo_id": jogos[0]["id"], "autor_id": "7", "nota": 8},
+            {"id": 103, "jogo_id": jogos[0]["id"], "autor_id": True, "nota": 8},
+        ])
+        self.repositorio.caminho_avaliacoes.write_text(json.dumps(avaliacoes), encoding="utf-8")
+        antes = self.arquivos_atuais()
+        with patch.object(self.repositorio, "_ler_lista", wraps=self.repositorio._ler_lista) as leitura:
+            resposta = self.cliente.get("/autores/7/avaliacoes")
+        self.assertEqual(resposta.status_code, 200)
+        self.assertEqual(leitura.call_count, 2)
+        self.assertEqual(resposta.get_json(), [
+            {"jogo": jogos[-1], "avaliacao": ultima},
+            {"jogo": jogos[0], "avaliacao": primeira},
+        ])
+        self.assertEqual(self.cliente.get("/autores/1/avaliacoes").get_json(), [])
+        self.assertEqual(self.arquivos_atuais(), antes)
+
+    def test_avaliacoes_por_autor_vazias_e_autor_zero(self):
+        self.assertEqual(self.cliente.get("/autores/7/avaliacoes").get_json(), [])
+        jogo = self.criar_jogo()
+        self.criar_avaliacao(jogo["id"])
+        resposta = self.cliente.get("/autores/999/avaliacoes")
+        self.assertEqual(resposta.status_code, 200)
+        self.assertEqual(resposta.get_json(), [])
+        self.verificar_erro(self.cliente.get("/autores/0/avaliacoes"), 400)
+
+    def test_avaliacoes_por_autor_refletem_edicao_exclusao_cascata_e_reinicio(self):
+        jogo = self.criar_jogo()
+        primeira = self.criar_avaliacao(jogo["id"])
+        ultima = self.criar_avaliacao(jogo["id"])
+        rota = "/autores/7/avaliacoes"
+        self.assertEqual(self.cliente.put(f"/avaliacoes/{ultima['id']}", json={"nota": 2.5}).status_code, 200)
+        self.api.app.config["REPOSITORIO"] = self.criar_repositorio()
+        self.assertEqual(self.cliente.get(rota).get_json()[0]["avaliacao"]["nota"], 2.5)
+        self.assertEqual(self.cliente.delete(f"/avaliacoes/{primeira['id']}").status_code, 200)
+        self.assertEqual(len(self.cliente.get(rota).get_json()), 1)
+        self.assertEqual(self.cliente.delete(f"/jogos/{jogo['id']}").status_code, 200)
+        self.assertEqual(self.cliente.get(rota).get_json(), [])
 
     def test_crud_jogos(self):
         self.assertEqual(self.cliente.get("/jogos").get_json(), [])

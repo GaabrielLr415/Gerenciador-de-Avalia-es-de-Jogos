@@ -1,6 +1,6 @@
-# Contrato da API - TechGames
+# Contrato da API - TechGamer
 
-Revisão técnica: 21/10/2026. Este documento descreve o comportamento implementado.
+Revisão técnica: 24/10/2026. Este documento descreve o comportamento implementado.
 Mudanças futuras devem ser combinadas entre Flask, persistência e cliente HTTP.
 
 ## Transporte e rotas
@@ -18,12 +18,13 @@ retornam JSON. Não há login; IDs de autor/ator são fictícios.
 | PUT | `/jogos/<id>` | 200 | Jogo atualizado. |
 | DELETE | `/jogos/<id>` | 200 | Mensagem e exclusão em cascata. |
 | GET | `/jogos/<id>/avaliacoes` | 200 | Lista de avaliações; `[]` se vazia. |
+| GET | `/autores/<autor_id>/avaliacoes` | 200 | Avaliações do autor com seus jogos; `[]` se vazia. |
 | POST | `/jogos/<id>/avaliacoes` | 201 | Avaliação criada pelo Builder e serviço. |
 | PUT | `/avaliacoes/<id>` | 200 | Avaliação atualizada após verificação do Proxy. |
 | DELETE | `/avaliacoes/<id>` | 200 | Mensagem após verificação do Proxy. |
 | GET | `/jogos/<id>/media` | 200 | ID do jogo, quantidade e média. |
 
-Não existe rota GET individual para avaliação; a consulta pública é por jogo.
+Não existe rota GET individual para avaliação; as consultas públicas são por jogo ou autor.
 Jogo ou avaliação inexistente nas operações correspondentes retorna 404.
 
 ## Verificação do servidor
@@ -31,7 +32,7 @@ Jogo ou avaliação inexistente nas operações correspondentes retorna 404.
 ```json
 {
   "status": "ok",
-  "aplicacao": "TechGames",
+  "aplicacao": "TechGamer",
   "recursos": ["capa_url", "design_patterns", "media_servidor"]
 }
 ```
@@ -106,6 +107,25 @@ Resposta: objeto com os campos acima, `id` gerado e `jogo_id` obtido da rota.
 O cadastro verifica a existência do jogo, valida, utiliza o Builder e persiste.
 Apenas após persistir são enviados os eventos de atualização da média.
 
+### Consulta por autor
+
+`GET /autores/7/avaliacoes` retorna uma lista de objetos com as chaves `jogo`
+e `avaliacao`. Cada chave contém o registro completo correspondente, com os
+mesmos campos das consultas já existentes. A lista vem em ordem decrescente
+do ID da avaliação. Autor sem avaliações retorna `[]`, inclusive se nunca
+publicou. Zero retorna 400; texto e números negativos não correspondem à rota
+e recebem 404 do Flask.
+
+Somente registros com `autor_id` inteiro positivo correspondente e jogo existente
+entram na resposta. Avaliações legadas sem autor e registros órfãos são omitidos.
+Não há autenticação nem exigência de `X-Ator-Id` nesta leitura pública. Permissões
+de edição/exclusão continuam sendo verificadas pelo Proxy.
+
+O cliente usa essa rota em **Minhas avaliações**, recebendo todos os itens do
+perfil em uma requisição. O servidor lê jogos e avaliações uma vez cada, cruza
+os registros em memória e não grava dados. Busca e paginação são locais no Qt.
+Downloads de capas são operações separadas. Reinicie o Flask após atualizar.
+
 ### Edição e exclusão individual
 
 Enviar o cabeçalho `X-Ator-Id`: dígitos ASCII que representem inteiro de
@@ -126,6 +146,9 @@ Exemplo de PUT com `X-Ator-Id: 7`:
 - Nota é obrigatória; comentário omitido fica vazio, seguindo o PUT existente.
 - Metadados omitidos preservam os anteriores; objeto enviado substitui os
   anteriores; `{}` permite limpá-los.
+- O formulário Qt omite `metadados` tanto no cadastro como na edição. Assim,
+  novas avaliações recebem `{}` e edições preservam os metadados atuais no servidor.
+  O editor JSON não é exibido na interface; o suporte ao campo na API permanece.
 - `id`, `jogo_id` e `autor_id` do corpo não alteram os valores originais.
 - Ausência de identificação válida ou falta de permissão retorna 403.
 - Avaliações legadas sem autor são lidas sem inventar autoria; edição e exclusão
@@ -204,5 +227,5 @@ padrões e T9.1 a T9.4. Fillipe: Qt. João Pedro: comunicação HTTP.
 
 Consulte [a matriz de requisitos](requisitos-e-aceitacao.md),
 [os testes](../testes/README.md) e [o relatório](validacao-entrega.md).
-A conferência visual, instalação em outra máquina e eventual exigência de
-executável permanecem itens de aceite da equipe.
+A conferência visual e a execução do [pacote portátil](portatil.md) em outro
+computador sem Python permanecem itens de aceite da equipe.

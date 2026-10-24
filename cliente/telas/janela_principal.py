@@ -40,10 +40,10 @@ class JanelaPrincipal(QMainWindow):
         self._aba_minhas = False
         self.jogo = None
         self.dialogo = None
-        self._avaliar_pendente = None
         self._avaliacao_id_selecionada = None
-        self.setWindowTitle("TechGames")
+        self.setWindowTitle("TechGamer")
         self.resize(1440, 900)
+        # Chave histórica mantida para preservar os perfis e preferências já salvos.
         self.preferencias = QSettings("TechForce", "TechGames")
         self.perfis = PerfisLocais(self.preferencias)
         self.perfil = self.perfis.ativo()
@@ -63,12 +63,29 @@ class JanelaPrincipal(QMainWindow):
                 QTimer.singleShot(0, self.abrir_perfil)
 
     def _montar_tela(self):
+        """Compõe a janela; cada etapa monta uma área da interface."""
         central = QWidget()
         central.setObjectName("aplicacao")
         estrutura = QVBoxLayout(central)
         estrutura.setContentsMargins(0, 0, 0, 0)
         estrutura.setSpacing(0)
+        cabecalho, acoes = self._montar_cabecalho(estrutura)
+        self._montar_barra_status()
+        conteudo, layout = self._montar_conteudo()
+        self._montar_biblioteca(cabecalho, acoes)
+        self._montar_detalhes()
+        self.divisao.setStretchFactor(0, 3)
+        self.divisao.setStretchFactor(1, 1)
+        self.divisao.setSizes([510, 310])
+        self.conteudo_paginas.addWidget(self.divisao)
+        self._montar_minhas_avaliacoes()
+        layout.addWidget(self.conteudo_paginas, 1)
+        estrutura.addWidget(conteudo, 1)
+        self.setCentralWidget(central)
+        self._atualizar_perfil_visual()
 
+    def _montar_cabecalho(self, estrutura):
+        """Cria a marca, a navegação e o espaço para busca e perfil."""
         self.barra_superior = QFrame()
         self.barra_superior.setObjectName("barra_superior")
         cabecalho = QGridLayout(self.barra_superior)
@@ -91,6 +108,30 @@ class JanelaPrincipal(QMainWindow):
         acoes.setContentsMargins(0, 0, 0, 0)
         acoes.setSpacing(10)
         cabecalho.addWidget(acoes_cabecalho, 0, 2, Qt.AlignmentFlag.AlignRight)
+        self._montar_marca(identidade)
+        self.botao_biblioteca = QPushButton("INÍCIO")
+        self.botao_biblioteca.setObjectName("navegacao")
+        self.botao_biblioteca.setCheckable(True)
+        self.botao_biblioteca.setChecked(True)
+        self.botao_biblioteca.setToolTip("Mostrar todos os jogos")
+        self.botao_biblioteca.clicked.connect(self._abrir_biblioteca)
+        navegacao.addWidget(self.botao_biblioteca)
+        self.botao_minhas = QPushButton("MINHAS AVALIAÇÕES")
+        self.botao_minhas.setObjectName("navegacao")
+        self.botao_minhas.setCheckable(True)
+        self.botao_minhas.clicked.connect(self.abrir_minhas_avaliacoes)
+        navegacao.addWidget(self.botao_minhas)
+        self.botao_atualizar = QPushButton("ATUALIZAR")
+        self.botao_atualizar.setObjectName("navegacao")
+        self.botao_atualizar.setToolTip("Consultar novamente os dados no servidor (F5)")
+        self.botao_atualizar.setShortcut("F5")
+        self.botao_atualizar.clicked.connect(self.atualizar)
+        navegacao.addWidget(self.botao_atualizar)
+        estrutura.addWidget(self.barra_superior)
+        return cabecalho, acoes
+
+    def _montar_marca(self, identidade):
+        """Carrega a logo disponível ou usa a identificação em texto."""
         pasta_imagens = Path(__file__).resolve().parents[2] / "imagem"
         caminho_logo = next((pasta_imagens / nome for nome in
                              ("logo.svg", "logo techgamer.svg.svg", "logo.png",
@@ -124,30 +165,13 @@ class JanelaPrincipal(QMainWindow):
             simbolo.setFixedSize(36, 36)
             simbolo.setAttribute(Qt.WidgetAttribute.WA_TransparentForMouseEvents)
             marca_layout.addWidget(simbolo)
-            marca = rotulo("TECHGAMES", "marca")
+            marca = rotulo("TECHGAMER", "marca")
             marca.setWordWrap(False)
             marca.setAttribute(Qt.WidgetAttribute.WA_TransparentForMouseEvents)
             marca_layout.addWidget(marca)
-        self.botao_biblioteca = QPushButton("INÍCIO")
-        self.botao_biblioteca.setObjectName("navegacao")
-        self.botao_biblioteca.setCheckable(True)
-        self.botao_biblioteca.setChecked(True)
-        self.botao_biblioteca.setToolTip("Mostrar todos os jogos")
-        self.botao_biblioteca.clicked.connect(self._abrir_biblioteca)
-        navegacao.addWidget(self.botao_biblioteca)
-        self.botao_minhas = QPushButton("MINHAS AVALIAÇÕES")
-        self.botao_minhas.setObjectName("navegacao")
-        self.botao_minhas.setCheckable(True)
-        self.botao_minhas.clicked.connect(self.abrir_minhas_avaliacoes)
-        navegacao.addWidget(self.botao_minhas)
-        self.botao_atualizar = QPushButton("ATUALIZAR")
-        self.botao_atualizar.setObjectName("navegacao")
-        self.botao_atualizar.setToolTip("Consultar novamente os dados no servidor (F5)")
-        self.botao_atualizar.setShortcut("F5")
-        self.botao_atualizar.clicked.connect(self.atualizar)
-        navegacao.addWidget(self.botao_atualizar)
-        estrutura.addWidget(self.barra_superior)
 
+    def _montar_barra_status(self):
+        """Exibe a conexão e a identificação local usada na demonstração."""
         self.conexao = rotulo("Conectando…", "subtitulo")
         self.statusBar().addPermanentWidget(self.conexao)
         identificacao = QWidget()
@@ -170,6 +194,8 @@ class JanelaPrincipal(QMainWindow):
         self.nome_perfil = rotulo(estilo="subtitulo")
         self.statusBar().addPermanentWidget(self.nome_perfil)
 
+    def _montar_conteudo(self):
+        """Prepara os avisos e a área que receberá as páginas."""
         conteudo = QWidget()
         conteudo.setObjectName("conteudo")
         layout = QVBoxLayout(conteudo)
@@ -189,7 +215,10 @@ class JanelaPrincipal(QMainWindow):
         self.progresso.setSizePolicy(politica_progresso)
         self.progresso.hide()
         layout.addWidget(self.progresso)
+        return conteudo, layout
 
+    def _montar_biblioteca(self, cabecalho, acoes):
+        """Monta o catálogo, os filtros e a grade paginada de jogos."""
         self.divisao = QSplitter(Qt.Orientation.Vertical)
         self.conteudo_paginas = QStackedWidget()
         biblioteca = QWidget()
@@ -202,6 +231,61 @@ class JanelaPrincipal(QMainWindow):
         titulo_colecao.setAlignment(Qt.AlignmentFlag.AlignVCenter)
         titulo_colecao.addWidget(rotulo("Jogos", "secao"))
         titulo_colecao.addStretch()
+        self._montar_busca(acoes)
+        self._montar_menu_perfil(acoes)
+        self.total_jogos = rotulo("Nenhum jogo carregado", "subtitulo")
+        titulo_colecao.addWidget(self.total_jogos)
+        self.botao_filtros = QPushButton("Filtros")
+        self.botao_filtros.setObjectName("botao_filtros")
+        self.botao_filtros.setFixedHeight(40)
+        self.botao_filtros.setAccessibleName("Abrir filtros de jogos")
+        self.botao_filtros.clicked.connect(self._abrir_filtros)
+        titulo_colecao.addWidget(self.botao_filtros)
+        esquerda.addLayout(titulo_colecao)
+        self._montar_filtros()
+        self.lista = GradeJogos()
+        self.lista.setViewMode(QListWidget.ViewMode.IconMode)
+        self.lista.setResizeMode(QListWidget.ResizeMode.Adjust)
+        self.lista.setMovement(QListWidget.Movement.Static)
+        self.lista.setSpacing(0)
+        self.lista.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+        self.lista.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+        self.lista.setGridSize(QSize(188, 316))
+        def alinhar_colunas(esquerda_grade, direita_grade):
+            titulo_colecao.setContentsMargins(esquerda_grade, 0, direita_grade, 0)
+            cabecalho.setContentsMargins(40 + esquerda_grade, 14, 40 + direita_grade, 14)
+        self.lista.margens_alteradas.connect(alinhar_colunas)
+        self.cards = CardsDelegate(self.lista)
+        self.lista.setItemDelegate(self.cards)
+        self.cards.falha_capa.connect(self._falha_capa)
+        self.lista.setVerticalScrollMode(
+            QAbstractItemView.ScrollMode.ScrollPerPixel)
+        self.lista.itemClicked.connect(self.abrir_avaliacoes_card)
+        self.lista.itemActivated.connect(self.abrir_avaliacoes_card)
+        self.lista.setAccessibleName("Jogos")
+        esquerda.addWidget(self.lista, 1)
+        self.sem_resultados = EstadoColecao()
+        self.sem_resultados.configurar("vazio", "Sua próxima aventura começa aqui",
+            "Adicione seu primeiro jogo para começar sua coleção e publicar avaliações.", "Adicionar jogo")
+        self.sem_resultados.botao.clicked.connect(self._acao_estado_colecao)
+        esquerda.addWidget(self.sem_resultados, 1)
+        self.paginacao = Paginacao(12)
+        politica = self.paginacao.sizePolicy()
+        politica.setRetainSizeWhenHidden(True)
+        self.paginacao.setSizePolicy(politica)
+        self.lista.capacidade_alterada.connect(self._ajustar_capacidade_biblioteca)
+        self.paginacao.alterada.connect(lambda _: self._preencher_biblioteca())
+        esquerda.addWidget(self.paginacao)
+        self.novo_jogo = QPushButton("+ Adicionar jogo")
+        self.novo_jogo.setObjectName("primario")
+        self.novo_jogo.setFixedHeight(40)
+        self.novo_jogo.clicked.connect(self.adicionar_jogo)
+        titulo_colecao.addWidget(self.novo_jogo)
+        self.divisao.addWidget(biblioteca)
+
+    def _montar_busca(self, acoes):
+        """Conecta a pesquisa por texto e seu intervalo de atualização."""
+        pasta_imagens = Path(__file__).resolve().parents[2] / "imagem"
         self.busca = QLineEdit()
         self.busca.setObjectName("busca_jogos")
         self.busca.setPlaceholderText("Procurar jogo")
@@ -227,6 +311,16 @@ class JanelaPrincipal(QMainWindow):
         for botao in (self.botao_biblioteca, self.botao_minhas, self.botao_atualizar):
             botao.setFixedHeight(40)
         acoes.addWidget(self.busca, 1)
+        self.busca.setClearButtonEnabled(True)
+        self.busca.setAccessibleName("Buscar jogos")
+        self._busca_timer = QTimer(self)
+        self._busca_timer.setSingleShot(True)
+        self._busca_timer.setInterval(300)
+        self._busca_timer.timeout.connect(self._filtrar)
+        self.busca.textChanged.connect(lambda: self._busca_timer.start())
+
+    def _montar_menu_perfil(self, acoes):
+        """Cria as ações de entrada, troca e saída do perfil local."""
         self.botao_perfil = QPushButton()
         self.botao_perfil.setObjectName("avatar_perfil")
         self.botao_perfil.setCursor(Qt.CursorShape.PointingHandCursor)
@@ -239,22 +333,9 @@ class JanelaPrincipal(QMainWindow):
         self.menu_perfil.addAction("Trocar perfil", self.abrir_perfil)
         self.acao_sair_perfil = self.menu_perfil.addAction("Sair", self.sair_perfil)
         acoes.addWidget(self.botao_perfil)
-        self.busca.setClearButtonEnabled(True)
-        self.busca.setAccessibleName("Buscar jogos")
-        self._busca_timer = QTimer(self)
-        self._busca_timer.setSingleShot(True)
-        self._busca_timer.setInterval(300)
-        self._busca_timer.timeout.connect(self._filtrar)
-        self.busca.textChanged.connect(lambda: self._busca_timer.start())
-        self.total_jogos = rotulo("Nenhum jogo carregado", "subtitulo")
-        titulo_colecao.addWidget(self.total_jogos)
-        self.botao_filtros = QPushButton("Filtros")
-        self.botao_filtros.setObjectName("botao_filtros")
-        self.botao_filtros.setFixedHeight(40)
-        self.botao_filtros.setAccessibleName("Abrir filtros de jogos")
-        self.botao_filtros.clicked.connect(self._abrir_filtros)
-        titulo_colecao.addWidget(self.botao_filtros)
-        esquerda.addLayout(titulo_colecao)
+
+    def _montar_filtros(self):
+        """Cria o popup de gênero, plataforma, ano e ordenação."""
         self.painel_filtros = QFrame(self, Qt.WindowType.Popup)
         self.painel_filtros.setObjectName("painel_filtros")
         self.painel_filtros.setFixedWidth(340)
@@ -303,46 +384,9 @@ class JanelaPrincipal(QMainWindow):
         self.concluir_filtros.clicked.connect(self.painel_filtros.hide)
         rodape_filtros.addWidget(self.concluir_filtros)
         painel_layout.addLayout(rodape_filtros)
-        self.lista = GradeJogos()
-        self.lista.setViewMode(QListWidget.ViewMode.IconMode)
-        self.lista.setResizeMode(QListWidget.ResizeMode.Adjust)
-        self.lista.setMovement(QListWidget.Movement.Static)
-        self.lista.setSpacing(0)
-        self.lista.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
-        self.lista.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
-        self.lista.setGridSize(QSize(188, 316))
-        def alinhar_colunas(esquerda_grade, direita_grade):
-            titulo_colecao.setContentsMargins(esquerda_grade, 0, direita_grade, 0)
-            cabecalho.setContentsMargins(40 + esquerda_grade, 14, 40 + direita_grade, 14)
-        self.lista.margens_alteradas.connect(alinhar_colunas)
-        self.cards = CardsDelegate(self.lista)
-        self.lista.setItemDelegate(self.cards)
-        self.cards.falha_capa.connect(self._falha_capa)
-        self.lista.setVerticalScrollMode(
-            QAbstractItemView.ScrollMode.ScrollPerPixel)
-        self.lista.itemClicked.connect(self.abrir_avaliacoes_card)
-        self.lista.itemActivated.connect(self.abrir_avaliacoes_card)
-        self.lista.setAccessibleName("Jogos")
-        esquerda.addWidget(self.lista, 1)
-        self.sem_resultados = EstadoColecao()
-        self.sem_resultados.configurar("vazio", "Sua próxima aventura começa aqui",
-            "Adicione seu primeiro jogo para começar sua coleção e publicar avaliações.", "Adicionar jogo")
-        self.sem_resultados.botao.clicked.connect(self._acao_estado_colecao)
-        esquerda.addWidget(self.sem_resultados, 1)
-        self.paginacao = Paginacao(12)
-        politica = self.paginacao.sizePolicy()
-        politica.setRetainSizeWhenHidden(True)
-        self.paginacao.setSizePolicy(politica)
-        self.lista.capacidade_alterada.connect(self._ajustar_capacidade_biblioteca)
-        self.paginacao.alterada.connect(lambda _: self._preencher_biblioteca())
-        esquerda.addWidget(self.paginacao)
-        self.novo_jogo = QPushButton("+ Adicionar jogo")
-        self.novo_jogo.setObjectName("primario")
-        self.novo_jogo.setFixedHeight(40)
-        self.novo_jogo.clicked.connect(self.adicionar_jogo)
-        titulo_colecao.addWidget(self.novo_jogo)
-        self.divisao.addWidget(biblioteca)
 
+    def _montar_detalhes(self):
+        """Liga a janela de detalhes às operações do jogo e das avaliações."""
         self.janela_detalhes = DialogoDetalhes(lambda: self.executor.ocupado, self)
         self.paginas = self.janela_detalhes.paginas
         self.mensagem_vazia = self.janela_detalhes.mensagem_vazia
@@ -360,15 +404,6 @@ class JanelaPrincipal(QMainWindow):
         self.janela_detalhes.editar_avaliacao.connect(self.abrir_edicao_avaliacao)
         self.janela_detalhes.excluir_avaliacao.connect(self.remover_avaliacao)
         self.cards.capa_carregada.connect(lambda _: self._atualizar_capa_detalhes())
-        self.divisao.setStretchFactor(0, 3)
-        self.divisao.setStretchFactor(1, 1)
-        self.divisao.setSizes([510, 310])
-        self.conteudo_paginas.addWidget(self.divisao)
-        self._montar_minhas_avaliacoes()
-        layout.addWidget(self.conteudo_paginas, 1)
-        estrutura.addWidget(conteudo, 1)
-        self.setCentralWidget(central)
-        self._atualizar_perfil_visual()
 
     def _montar_minhas_avaliacoes(self):
         pagina = QWidget()
@@ -529,13 +564,7 @@ class JanelaPrincipal(QMainWindow):
         self.vazio_minhas.setText("Carregando suas avaliações…")
 
         def consultar():
-            jogos = self.api.listar_jogos()
-            resultado = []
-            for jogo in jogos:
-                for avaliacao in self.api.listar_avaliacoes(jogo["id"]):
-                    if type(avaliacao.get("autor_id")) is int and avaliacao["autor_id"] == autor_id:
-                        resultado.append({"jogo": jogo, "avaliacao": avaliacao})
-            return sorted(resultado, key=lambda item: item["avaliacao"]["id"], reverse=True)
+            return self.api.listar_avaliacoes_por_autor(autor_id)
 
         def receber(itens):
             if self.perfil and self.perfil["id"] == autor_id:
@@ -578,9 +607,13 @@ class JanelaPrincipal(QMainWindow):
                 self.lista_minhas.setCurrentItem(selecionado or self.lista_minhas.item(0))
         self.lista_minhas.setVisible(bool(itens))
         self.vazio_minhas.setVisible(not itens)
-        self.vazio_minhas.setText("Entre com seu perfil para consultar suas avaliações." if not self.perfil else
-                                 "Nenhuma avaliação encontrada para este perfil." if not termo else
-                                 "Nenhuma avaliação corresponde à pesquisa.")
+        if not self.perfil:
+            mensagem = "Entre com seu perfil para consultar suas avaliações."
+        elif termo:
+            mensagem = "Nenhuma avaliação corresponde à pesquisa."
+        else:
+            mensagem = "Nenhuma avaliação encontrada para este perfil."
+        self.vazio_minhas.setText(mensagem)
         self.total_minhas.setText(f"{len(itens)} avaliação(ões)")
         self._selecionar_minha()
 
@@ -684,17 +717,7 @@ class JanelaPrincipal(QMainWindow):
             self.janela_detalhes.show()
             self.janela_detalhes.raise_()
 
-    def abrir_avaliacao_card(self, item):
-        jogo_id = item.data(Qt.ItemDataRole.UserRole)
-        if self.jogo and self.jogo["id"] == jogo_id and not self.executor.ocupado:
-            self.adicionar_avaliacao()
-        else:
-            self._avaliar_pendente = jogo_id
-            if not self.executor.ocupado:
-                self._selecionar_jogo()
-
     def abrir_avaliacoes_card(self, item):
-        self._avaliar_pendente = None
         self.lista.setCurrentItem(item)
         self.abrir_detalhes()
 
@@ -793,9 +816,9 @@ class JanelaPrincipal(QMainWindow):
     def _receber_jogos(self, jogos, selecionar_id):
         self._erro_catalogo = None
         self._jogos = jogos
-        for combo, campo, titulo in ((self.filtro_genero, "genero", "Gênero"),
-                                     (self.filtro_plataforma, "plataforma", "Plataforma"),
-                                     (self.filtro_ano, "ano_lancamento", "Ano")):
+        for combo, campo in ((self.filtro_genero, "genero"),
+                             (self.filtro_plataforma, "plataforma"),
+                             (self.filtro_ano, "ano_lancamento")):
             atual = combo.currentData()
             valores = set()
             for jogo in jogos:
@@ -826,23 +849,10 @@ class JanelaPrincipal(QMainWindow):
 
     def _preencher_biblioteca(self, selecionar_id=None, *, carregar_detalhes=True):
         termo = self.busca.text().strip().casefold()
-        jogos = [j for j in self._jogos if termo in " ".join(
-            str(j.get(campo, "")) for campo in ("nome", "genero", "plataforma")
-        ).casefold()]
         genero = self.filtro_genero.currentData()
         plataforma = self.filtro_plataforma.currentData()
         ano = self.filtro_ano.currentData()
-        jogos = [j for j in jogos if
-                 (not genero or genero in [v.strip() for v in j["genero"].split(",")]) and
-                 (not plataforma or j["plataforma"] == plataforma) and
-                 (not ano or str(j["ano_lancamento"]) == ano)]
-        ordem = self.ordenacao.currentData()
-        if ordem == "nome":
-            jogos.sort(key=lambda j: j["nome"].casefold())
-        elif ordem == "nota":
-            jogos.sort(key=lambda j: (-(j.get("media") if j.get("media") is not None else -1), j["nome"].casefold()))
-        elif ordem == "ano":
-            jogos.sort(key=lambda j: (-j["ano_lancamento"], j["nome"].casefold()))
+        jogos = self._filtrar_catalogo(termo, genero, plataforma, ano)
         if selecionar_id is not None:
             indice = next((i for i, j in enumerate(jogos) if j["id"] == selecionar_id), None)
             if indice is not None:
@@ -883,6 +893,38 @@ class JanelaPrincipal(QMainWindow):
         if carregar_detalhes:
             self._selecionar_jogo()
 
+    def _filtrar_catalogo(self, termo, genero, plataforma, ano):
+        """Aplica busca e filtros aos dados carregados, sem iniciar requisições."""
+        jogos = []
+        for jogo in self._jogos:
+            texto = " ".join(str(jogo.get(campo, ""))
+                             for campo in ("nome", "genero", "plataforma"))
+            if termo not in texto.casefold():
+                continue
+            generos = [valor.strip() for valor in jogo["genero"].split(",")]
+            if genero and genero not in generos:
+                continue
+            if plataforma and jogo["plataforma"] != plataforma:
+                continue
+            if ano and str(jogo["ano_lancamento"]) != ano:
+                continue
+            jogos.append(jogo)
+
+        def ordenar_por_nota(jogo):
+            # Jogos sem avaliações ficam depois da nota zero; o nome desempata.
+            media = jogo.get("media")
+            nota = media if media is not None else -1
+            return -nota, jogo["nome"].casefold()
+
+        ordem = self.ordenacao.currentData()
+        if ordem == "nome":
+            jogos.sort(key=lambda jogo: jogo["nome"].casefold())
+        elif ordem == "nota":
+            jogos.sort(key=ordenar_por_nota)
+        elif ordem == "ano":
+            jogos.sort(key=lambda jogo: (-jogo["ano_lancamento"], jogo["nome"].casefold()))
+        return jogos
+
     def _selecionar_jogo(self, *_args):
         item = self.lista.currentItem()
         self.jogo = None
@@ -891,7 +933,6 @@ class JanelaPrincipal(QMainWindow):
         self.paginas.setCurrentIndex(0)
         if item is None:
             self.janela_detalhes.hide()
-            self._avaliar_pendente = None
             self.mensagem_vazia.setText(
                 "Escolha um jogo ou adicione um novo.")
             self.statusBar().showMessage("Jogos atualizados.")
@@ -905,7 +946,6 @@ class JanelaPrincipal(QMainWindow):
                     self.api.consultar_media(jogo_id))
 
         def falha(mensagem):
-            self._avaliar_pendente = None
             self.mensagem_vazia.setText(
                 "Não foi possível carregar este jogo. Clique em Atualizar para tentar novamente.")
             self._falha(mensagem)
@@ -944,9 +984,6 @@ class JanelaPrincipal(QMainWindow):
         self.conexao.setText("Servidor conectado")
         self.statusBar().showMessage(
             "Clique em um card para ver avaliações e comentários. Use Avaliar jogo para criar uma avaliação.")
-        if self._avaliar_pendente == jogo["id"]:
-            self._avaliar_pendente = None
-            QTimer.singleShot(0, self.adicionar_avaliacao)
 
     def _nome_autor(self, autor_id):
         if type(autor_id) is not int or autor_id <= 0:
@@ -1048,7 +1085,6 @@ class JanelaPrincipal(QMainWindow):
         self.janela_detalhes.hide()
         self.jogo = None
         self._avaliacoes = []
-        self._avaliar_pendente = None
         self._avaliacao_id_selecionada = None
         self.preferencias.remove(f"capas/{jogo_id}")
         self._operacao_concluida("Jogo excluído com sucesso.")

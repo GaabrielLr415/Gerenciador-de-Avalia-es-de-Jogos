@@ -2,7 +2,7 @@
 
 from collections.abc import Callable
 
-from PySide6.QtCore import QObject, QRunnable, QThreadPool, Signal, Slot
+from PySide6.QtCore import QObject, QRunnable, QThreadPool, Qt, Signal, Slot
 
 
 class _Sinais(QObject):
@@ -10,11 +10,11 @@ class _Sinais(QObject):
 
 
 class _Tarefa(QRunnable):
-    def __init__(self, numero: int, operacao: Callable):
+    def __init__(self, numero: int, operacao: Callable, sinais: _Sinais):
         super().__init__()
         self.numero = numero
         self.operacao = operacao
-        self.sinais = _Sinais()
+        self.sinais = sinais
 
     @Slot()
     def run(self):
@@ -43,16 +43,19 @@ class ExecutorHTTP(QObject):
 
     def executar(self, operacao, sucesso, falha):
         self._numero += 1
-        tarefa = _Tarefa(self._numero, operacao)
+        # Os sinais pertencem ao executor para serem destruídos na thread gráfica.
+        sinais = _Sinais(self)
+        tarefa = _Tarefa(self._numero, operacao, sinais)
         self._pendentes[self._numero] = (tarefa, sucesso, falha)
-        tarefa.sinais.concluido.connect(self._concluir)
+        sinais.concluido.connect(self._concluir, Qt.ConnectionType.QueuedConnection)
         self.ocupado_alterado.emit(True)
         self.pool.start(tarefa)
 
     @Slot(object)
     def _concluir(self, resultado):
         numero, dados, erro = resultado
-        _, sucesso, falha = self._pendentes.pop(numero)
+        tarefa, sucesso, falha = self._pendentes.pop(numero)
+        tarefa.sinais.deleteLater()
         self.ocupado_alterado.emit(self.ocupado)
         if erro is None:
             sucesso(dados)

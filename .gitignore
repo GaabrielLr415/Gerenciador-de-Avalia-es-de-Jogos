@@ -222,3 +222,6 @@ __marimo__/
 # TechGames local persistence artifacts
 dados/.contadores_id.json
 dados/*.bak
+
+# Local notes and backups; not part of the application
+/.local/

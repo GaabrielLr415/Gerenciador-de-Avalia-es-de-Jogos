@@ -1,10 +1,9 @@
 """Formulários com validação local e salvamento HTTP assíncrono."""
 
-import json
 from datetime import datetime
 from urllib.parse import urlparse
 
-from PySide6.QtCore import QSettings, QTimer, Qt, Signal
+from PySide6.QtCore import QSettings, Qt, Signal
 from PySide6.QtGui import QColor, QImageReader
 from PySide6.QtWidgets import (
     QComboBox, QDialog, QDialogButtonBox, QDoubleSpinBox, QFormLayout, QHBoxLayout,
@@ -189,6 +188,7 @@ class FormularioJogo(Formulario):
         self.capa_url.setPlaceholderText(
             "https://site.com/capa.jpg (opcional)")
         self.capa_url.setClearButtonEnabled(True)
+        # Mesma chave histórica da janela, para preservar as capas locais já salvas.
         self.preferencias = QSettings("TechForce", "TechGames")
         self._capa_alterada = False
         self.capa_local = QLineEdit(
@@ -402,35 +402,10 @@ class FormularioAvaliacao(Formulario):
         rotulo_autor.setBuddy(self.autor)
         self.form.addRow(rotulo_autor, linha_autor)
 
-        self.opcoes_metadados = QPushButton()
-        self.opcoes_metadados.setObjectName("opcoes_avaliacao")
-        self.opcoes_metadados.setCheckable(True)
-        self.opcoes_metadados.setAutoDefault(False)
-        self.opcoes_metadados.setAccessibleName("Exibir ou ocultar opções adicionais")
-        self.form.addRow(self.opcoes_metadados)
-        self.area_metadados = QWidget()
-        metadados_layout = QVBoxLayout(self.area_metadados)
-        metadados_layout.setContentsMargins(0, 0, 0, 0)
-        metadados_layout.setSpacing(8)
-        metadados_layout.addWidget(QLabel("Metadados (objeto JSON opcional)"))
-        self.metadados = QPlainTextEdit(json.dumps(registro.get("metadados", {}), ensure_ascii=False))
-        self.metadados.setPlaceholderText('{"plataforma": "PC"}')
-        self.metadados.setFixedHeight(75)
-        self.metadados.setAccessibleName("Metadados opcionais em JSON")
-        metadados_layout.addWidget(self.metadados)
-        self.form.addRow(self.area_metadados)
-        self.opcoes_metadados.toggled.connect(self._alternar_metadados)
-        self._alternar_metadados(False)
-        self.opcoes_metadados.setChecked(bool(registro.get("metadados")))
         self.setTabOrder(self.estrelas, self.nota)
         self.setTabOrder(self.nota, self.comentario)
         self.setTabOrder(self.comentario, self.autor)
-        self.setTabOrder(self.autor, self.opcoes_metadados)
-
-    def _alternar_metadados(self, expandido):
-        self.area_metadados.setVisible(expandido)
-        self.opcoes_metadados.setText(
-            "▾ Opções adicionais" if expandido else "▸ Opções adicionais")
+        self.setTabOrder(self.autor, self.botao_salvar)
 
     def _sincronizar_nota(self, nota):
         # Uma edição de comentário não deve arredondar uma nota antiga já salva.
@@ -443,19 +418,11 @@ class FormularioAvaliacao(Formulario):
     def dados(self):
         self.nota.interpretText()
         self.autor.interpretText()
-        dados = {"nota": self.nota.value(
-        ), "comentario": self.comentario.toPlainText().strip()}
+        dados = {
+            "nota": self.nota.value(),
+            "comentario": self.comentario.toPlainText().strip(),
+        }
         if self.avaliacao is None:
             dados["autor_id"] = self.autor.value()
-        try:
-            metadados = json.loads(self.metadados.toPlainText().strip() or "{}")
-            if not isinstance(metadados, dict):
-                raise ValueError()
-            json.dumps(metadados, allow_nan=False)
-        except (ValueError, TypeError):
-            self.opcoes_metadados.setChecked(True)
-            self.metadados.setFocus()
-            QTimer.singleShot(0, self, lambda: self.scroll_campos.ensureWidgetVisible(self.metadados))
-            raise ValueError("Os metadados devem ser um objeto JSON válido, sem números não finitos.")
-        dados["metadados"] = metadados
+        # Omitir metadados mantém os valores atuais no servidor durante a edição.
         return dados

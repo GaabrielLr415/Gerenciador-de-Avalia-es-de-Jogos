@@ -5,7 +5,7 @@
     "genero": "Mundo Aberto",
     "plataforma": "PlayStation",
     "ano_lancamento": 2026,
-    "descricao": "",
+    "descricao": "A história se passa no estado fictício de Leonida — inspirado na Flórida —, que abriga a icônica e ensolarada cidade de Vice City. Pela primeira vez na história moderna da franquia, a campanha principal traz uma dupla de protagonistas: Lucia Caminos (que tem origens em Liberty City e passou tempo em uma penitenciária local) e Jason Duval (um ex-militar envolvido com pequenos trabalhos criminosos)",
     "capa_url": "https://imgproxy.eneba.games/XvDn5Ic8ZfWdsicYxSZqswGXiXWwXw3sl2mkerQBrOg/rs:fit:300/ar:1/czM6Ly9wcm9kdWN0/cy5lbmViYS5nYW1l/cy9wcm9kdWN0cy9s/VmRuaTExUkYzOUFo/Nzl5ZGdVTkJlQXFV/WWNxNXdDM21iUm40/TmZXZmhVLmpwZw"
   },
   {
@@ -14,7 +14,7 @@
     "genero": "Metroidvania",
     "plataforma": "PC",
     "ano_lancamento": 2017,
-    "descricao": "Explore um reino subterrâneo em uma aventura de exploração e combate.",
+    "descricao": "A história acompanha um misterioso e silencioso guerreiro inseto conhecido apenas como O Cavaleiro. Ele chega às ruínas de Hallownest, um outrora grandioso e próspero reino subterrâneo de insetos que foi devastado e reduzido a ruínas após ser assolado por uma infecção misteriosa e sobrenatural que tira a sanidade e escraviza a mente de seus habitantes.\nAo descer pelas profundezas do reino através da pacata vila de Dirtmouth, o Cavaleiro deve explorar cavernas tortuosas, labirintos antigos e cidades esquecidas. Seu objetivo é enfrentar as criaturas corrompidas, desvendar os segredos milenares sobre a ascensão e a queda de Hallownest e descobrir a verdade por trás de sua própria origem e de sua ligação com o destino daquele mundo.",
     "capa_url": "https://notadogame.com/uploads/game/cover/250x/5bfdc4cfcdbb6.jpg"
   },
   {
@@ -23,7 +23,7 @@
     "genero": "Sandbox",
     "plataforma": "PC",
     "ano_lancamento": 2011,
-    "descricao": "Construa, explore e sobreviva em mundos formados por blocos.",
+    "descricao": "Desperte em um mundo infinito de blocos onde o único limite é a sua imaginação. Explore cenários gerados aleatoriamente, colete matérias-primas da natureza e construa desde cabanas simples até castelos majestosos. No modo Sobrevivência, fabrique suas próprias ferramentas, cultive alimentos e defenda-se de criaturas perigosas que surgem ao anoitecer. Se preferir criar sem limites, o modo Criativo oferece recursos infinitos e voo livre. Desvende segredos ancestrais, viaje por portais para dimensões perigosas como o Nether e enfrente o lendário Ender Dragon nesta jornada definitiva de sobrevivência, criatividade e exploração.",
     "capa_url": "https://notadogame.com/uploads/game/cover/250x/5bfdc385cc56d.jpg"
   },
   {
@@ -835,15 +835,6 @@
     "ano_lancamento": 2017,
     "descricao": "Controle Kat e manipule a gravidade para explorar cidades flutuantes, enfrentar inimigos e descobrir novas partes de seu mundo.",
     "capa_url": "https://notadogame.com/uploads/game/cover/250x/5bfdc477a6f19.jpg"
-  },
-  {
-    "id": 112,
-    "nome": "Gravity Rush Remastered",
-    "genero": "Ação e aventura",
-    "plataforma": "PlayStation",
-    "ano_lancamento": 2016,
-    "descricao": "Acompanhe Kat em Hekseville, alterando a direção da gravidade para atravessar a cidade e combater criaturas misteriosas.",
-    "capa_url": "https://notadogame.com/uploads/game/cover/250x/5bfdc3f373601.jpg"
   },
   {
     "id": 113,

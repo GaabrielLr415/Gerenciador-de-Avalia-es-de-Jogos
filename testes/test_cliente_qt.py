@@ -3,7 +3,10 @@
 import importlib
 import os
 from pathlib import Path
+import subprocess
+import sys
 import tempfile
+from textwrap import dedent
 import threading
 import time
 import unittest
@@ -11,7 +14,7 @@ from unittest.mock import patch
 
 os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 
-from PySide6.QtCore import QPoint, QSettings, QThread, QTimer, Qt
+from PySide6.QtCore import QEvent, QPoint, QSettings, QThread, QTimer, Qt
 from PySide6.QtTest import QTest
 from PySide6.QtWidgets import QApplication
 from werkzeug.serving import make_server
@@ -66,8 +69,11 @@ class ClienteQtTestes(unittest.TestCase):
 
     def fechar_janela(self):
         self.esperar(lambda: not self.janela.executor.ocupado)
+        self.assertTrue(self.janela.executor.pool.waitForDone(2000))
         self.janela.close()
         self.janela.deleteLater()
+        # processEvents sozinho não garante a execução das exclusões adiadas.
+        self.qt.sendPostedEvents(None, QEvent.Type.DeferredDelete)
         self.qt.processEvents()
 
     def esperar(self, condicao, timeout=8):
@@ -474,9 +480,65 @@ class ClienteQtTestes(unittest.TestCase):
         self.assertFalse(executor.ocupado)
 
 
+    def test_executor_pode_ser_encerrado_apos_sucesso_ou_falha_sem_erro_nativo(self):
+        # O subprocesso transforma uma falha nativa do Qt em erro deste teste,
+        # sem encerrar a suíte inteira. A versão anterior falhava neste cenário.
+        codigo = dedent('''
+            import os
+            os.environ['QT_QPA_PLATFORM'] = 'offscreen'
+            if os.name == 'nt':
+                import ctypes
+                ctypes.windll.kernel32.SetErrorMode(3)
+            import threading
+            from PySide6.QtCore import QThread, QTimer
+            from PySide6.QtWidgets import QApplication
+            from PySide6.QtTest import QTest
+            from cliente.services.tarefas import ExecutorHTTP
+
+            app = QApplication([])
+
+            def rodada(indice):
+                executor = ExecutorHTTP()
+                liberar = threading.Event()
+                resultados = []
+
+                def operacao():
+                    liberar.wait(timeout=3)
+                    if indice % 2:
+                        raise ValueError('falha esperada')
+                    return 42
+
+                def sucesso(valor):
+                    resultados.append((valor, QThread.currentThread() == app.thread()))
+
+                def falha(mensagem):
+                    resultados.append((mensagem, QThread.currentThread() == app.thread()))
+
+                executor.executar(operacao, sucesso, falha)
+                QTimer.singleShot(1, liberar.set)
+                while not resultados:
+                    app.processEvents()
+                    QTest.qWait(1)
+                esperado = 'falha esperada' if indice % 2 else 42
+                assert resultados == [(esperado, True)], resultados
+                assert not executor.ocupado
+
+            for indice in range(100):
+                rodada(indice)
+            print('100 ciclos de sucesso e falha concluidos')
+        ''')
+        resultado = subprocess.run(
+            [sys.executable, "-B", "-c", codigo],
+            capture_output=True, text=True, timeout=45,
+        )
+        self.assertEqual(resultado.returncode, 0, resultado.stdout + resultado.stderr)
+        self.assertIn("100 ciclos de sucesso e falha concluidos", resultado.stdout)
+
     def test_proxy_qt_bloqueia_outro_e_permite_moderador(self):
         jogo = self.repo.criar_jogo(self.dados_jogo())
-        av = self.repo.criar_avaliacao(jogo["id"], {"nota":8,"autor_id":7})
+        av = self.repo.criar_avaliacao(jogo["id"], {
+            "nota": 8, "autor_id": 7, "metadados": {"origem": "api"},
+        })
         self.janela.atualizar()
         self.aguardar_http()
         self.janela.ator_local.setValue(8)
@@ -495,11 +557,10 @@ class ClienteQtTestes(unittest.TestCase):
         self.janela.abrir_edicao_avaliacao(av["id"])
         formulario = self.janela.dialogo
         formulario.nota.setValue(6)
-        formulario.metadados.setPlainText('{"origem":"moderacao"}')
         formulario.enviar()
         self.aguardar_http()
         self.assertEqual(self.repo.buscar_avaliacao(av["id"])["nota"], 6)
-        self.assertEqual(self.repo.buscar_avaliacao(av["id"])["metadados"], {"origem":"moderacao"})
+        self.assertEqual(self.repo.buscar_avaliacao(av["id"])["metadados"], {"origem": "api"})
         self.assertIn("6,00 / 10", self.janela.media.text())
         with patch.object(self.janela, "_confirmar", return_value=True):
             self.janela.remover_avaliacao(av["id"])
@@ -531,19 +592,28 @@ class ClienteQtTestes(unittest.TestCase):
         self.assertTrue(consulta.called)
         self.assertIn("3,50 / 10", self.janela.media.text())
 
-    def test_metadados_invalidos_nao_sao_enviados(self):
+    def test_formulario_publica_sem_editor_json(self):
+        from PySide6.QtWidgets import QPlainTextEdit, QPushButton
+
         jogo = self.repo.criar_jogo(self.dados_jogo())
         self.janela.atualizar()
         self.aguardar_http()
         self.janela.adicionar_avaliacao()
         formulario = self.janela.dialogo
-        for texto in ('[]', '{', '{"valor":NaN}'):
-            formulario.metadados.setPlainText(texto)
+        self.assertEqual(formulario.findChildren(QPlainTextEdit), [formulario.comentario])
+        self.assertFalse(any("Opções adicionais" in botao.text()
+                             for botao in formulario.findChildren(QPushButton)))
+        formulario.nota.setValue(8)
+        formulario.comentario.setPlainText("Uma ótima experiência")
+        with patch.object(self.cliente, "cadastrar_avaliacao", wraps=self.cliente.cadastrar_avaliacao) as publicar:
             formulario.enviar()
-            self.assertTrue(formulario.erro.isVisible())
-            self.assertFalse(self.janela.executor.ocupado)
-        self.assertEqual(self.repo.listar_avaliacoes(jogo["id"]), [])
-        formulario.reject()
+            self.aguardar_http()
+        self.assertEqual(set(publicar.call_args.args[1]), {"nota", "comentario", "autor_id"})
+        avaliacoes = self.repo.listar_avaliacoes(jogo["id"])
+        self.assertEqual(len(avaliacoes), 1)
+        self.assertEqual(avaliacoes[0]["nota"], 8)
+        self.assertEqual(avaliacoes[0]["comentario"], "Uma ótima experiência")
+        self.assertEqual(avaliacoes[0]["metadados"], {})
 
     def test_detalhes_cartoes_operam_no_registro_correto(self):
         comentario = "Gostei dos desafios e da exploração. " * 16
@@ -919,6 +989,26 @@ class ClienteQtTestes(unittest.TestCase):
         # A média pública inclui também a avaliação legada (nota 6).
         self.assertIn("5,00 / 10", self.janela.media.text())
 
+    def test_minhas_carregam_97_jogos_em_uma_requisicao_por_atualizacao(self):
+        jogos = [self.repo.criar_jogo(self.dados_jogo(f"Jogo {i:03}")) for i in range(97)]
+        minha = self.repo.criar_avaliacao(jogos[-1]["id"], {"autor_id": 7, "nota": 9.5})
+        self.repo.criar_avaliacao(jogos[0]["id"], {"autor_id": 8, "nota": 4})
+        self.entrar_perfil()
+        self.aguardar_http()
+        with patch.object(self.cliente, "_request", wraps=self.cliente._request) as requisicao:
+            self.janela.abrir_minhas_avaliacoes()
+            self.aguardar_http()
+            requisicao.assert_called_once_with("GET", "/autores/7/avaliacoes")
+            self.assertEqual(self.janela._minhas, [{"jogo": jogos[-1], "avaliacao": minha}])
+            requisicao.reset_mock()
+            self.janela.busca.setText("Jogo 096")
+            self.aguardar_http()
+            requisicao.assert_not_called()
+            self.janela.atualizar()
+            self.aguardar_http()
+            requisicao.assert_called_once_with("GET", "/autores/7/avaliacoes")
+        self.assertEqual(self.janela.lista_minhas.count(), 1)
+
     def test_minhas_paginam_pesquisam_e_tratam_falha_de_rede(self):
         jogo = self.repo.criar_jogo(self.dados_jogo())
         for indice in range(8):
@@ -942,7 +1032,7 @@ class ClienteQtTestes(unittest.TestCase):
         self.assertTrue(self.janela.botao_atualizar.isEnabled())
         self.assertEqual(len(self.repo.listar_avaliacoes(jogo["id"])), 8)
 
-    def test_opcoes_adicionais_preservam_dados_e_revelam_json_invalido(self):
+    def test_edicao_preserva_metadados_mais_recentes_sem_editor_json(self):
         jogo = self.repo.criar_jogo(self.dados_jogo())
         original = self.repo.criar_avaliacao(jogo["id"], {
             "autor_id": 7, "nota": 8,
@@ -953,27 +1043,20 @@ class ClienteQtTestes(unittest.TestCase):
         self.janela.ator_local.setValue(7)
         self.janela.abrir_edicao_avaliacao(original["id"])
         formulario = self.janela.dialogo
-        self.assertTrue(formulario.opcoes_metadados.isChecked())
-        formulario.opcoes_metadados.click()
-        self.assertFalse(formulario.area_metadados.isVisible())
-        self.assertEqual(formulario.dados()["metadados"], original["metadados"])
-
-        formulario.metadados.setPlainText('{"nota":NaN}')
-        formulario.enviar()
-        self.assertTrue(formulario.opcoes_metadados.isChecked())
-        self.assertTrue(formulario.area_metadados.isVisible())
-        self.assertTrue(formulario.erro.isVisible())
-        self.assertEqual(self.repo.buscar_avaliacao(original["id"]), original)
-
-        formulario.metadados.setPlainText('{"tags":["revisado"]}')
-        formulario.opcoes_metadados.click()
+        # Outra operação pode atualizar os dados enquanto o formulário está aberto.
+        recentes = {"plataforma": "PC", "tags": ["campanha", "revisado"]}
+        self.repo.atualizar_avaliacao(original["id"], {"nota": 8, "metadados": recentes})
         formulario.nota.setValue(9)
-        formulario.enviar()
-        self.aguardar_http()
+        formulario.comentario.setPlainText("Comentário revisado")
+        with patch.object(self.cliente, "editar_avaliacao", wraps=self.cliente.editar_avaliacao) as editar:
+            formulario.enviar()
+            self.aguardar_http()
+        self.assertEqual(set(editar.call_args.args[1]), {"nota", "comentario"})
         atualizada = self.repo.buscar_avaliacao(original["id"])
-        self.assertEqual(atualizada["metadados"], {"tags": ["revisado"]})
+        self.assertEqual(atualizada["metadados"], recentes)
         self.assertEqual(atualizada["autor_id"], 7)
         self.assertEqual(atualizada["nota"], 9)
+        self.assertEqual(atualizada["comentario"], "Comentário revisado")
 
 
     def test_capas_sem_faixas_preservam_topo_e_proporcao(self):

@@ -1,5 +1,12 @@
 # Revisão das issues e carregamento da biblioteca
 
+Registro histórico de 22/10/2026. As contagens e situações de branches/issues
+abaixo correspondem àquela revisão. Para o código e os resultados atuais,
+consulte o [relatório de validação](validacao-entrega.md). A otimização do catálogo
+foi integrada pelo PR #21, commit `45fcdf4`; a documentação principal foi
+atualizada em 24/10/2026. As issues não foram consultadas nem alteradas nesta
+atualização documental.
+
 Data: 22/10/2026. Base integrada: `78fae73` (PR #20). A otimização descrita
 abaixo ainda é alteração local, sem commit ou integração à main nesta revisão.
 As issues #1 a #5 foram consultadas no GitHub e continuam abertas.

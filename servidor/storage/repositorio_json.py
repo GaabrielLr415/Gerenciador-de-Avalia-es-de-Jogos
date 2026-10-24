@@ -1,5 +1,5 @@
 """
-Módulo de persistência local em arquivos JSON para o TechGames.
+Módulo de persistência local em arquivos JSON para o TechGamer.
 Responsável: Angélica (Issue #5)
 
 Implementa o padrão Repository (RepositorioJSON) sem dependência de Flask ou Qt,
@@ -12,12 +12,17 @@ from __future__ import annotations
 import json
 import os
 import shutil
+import sys
 import tempfile
 from pathlib import Path
 from typing import Any
 
 # Diretório padrão de dados na raiz do projeto: <raiz>/dados
-DIRETORIO_RAIZ = Path(__file__).resolve().parents[2]
+DIRETORIO_RAIZ = (
+    Path(sys.executable).resolve().parent
+    if getattr(sys, "frozen", False)
+    else Path(__file__).resolve().parents[2]
+)
 DIRETORIO_DADOS_PADRAO = DIRETORIO_RAIZ / "dados"
 ARQUIVO_JOGOS_PADRAO = DIRETORIO_DADOS_PADRAO / "jogos.json"
 ARQUIVO_AVALIACOES_PADRAO = DIRETORIO_DADOS_PADRAO / "avaliacoes.json"

@@ -1,8 +1,6 @@
-# Servidor Flask responsável pela API do TechGames
-from datetime import datetime
+"""Rotas HTTP: recebem dados, delegam operações e retornam JSON."""
 from pathlib import Path
 import sys
-from urllib.parse import urlparse
 
 from flask import Flask, jsonify, request
 
@@ -14,10 +12,10 @@ if str(DIRETORIO_RAIZ) not in sys.path:
 from servidor.storage.repositorio_json import (
     AvaliacaoSemAutorError,
     RepositorioJSON,
-    validar_metadados,
 )
 
 from servidor.patterns import ServicoAvaliacoes, AvaliacoesProxy, AutorizacaoError
+from servidor.validacoes import validar_avaliacao, validar_jogo
 
 app = Flask(__name__)
 # IDs fictícios para demonstrar o Proxy, sem autenticação.
@@ -88,105 +86,12 @@ def tratar_avaliacao_sem_autor(excecao):
     return erro(str(excecao), 403)
 
 
-# Valida os dados de um jogo
-def validar_jogo(dados):
-    if not isinstance(dados, dict):
-        return None, "Envie os dados do jogo em JSON."
-
-    campos = ["nome", "genero", "plataforma", "ano_lancamento"]
-
-    for campo in campos:
-        if campo not in dados or dados[campo] is None:
-            return None, f"O campo '{campo}' é obrigatório."
-
-    for campo in ["nome", "genero", "plataforma"]:
-        valor = dados[campo]
-
-        if not isinstance(valor, str) or not valor.strip():
-            return None, f"O campo '{campo}' deve ser um texto válido."
-
-    ano = dados["ano_lancamento"]
-    ano_atual = datetime.now().year
-
-    if type(ano) is not int or not 1950 <= ano <= ano_atual:
-        return None, "O ano de lançamento é inválido."
-
-    descricao = dados.get("descricao", "")
-
-    if not isinstance(descricao, str):
-        return None, "A descrição deve ser um texto válido."
-
-    jogo_validado = {
-        "nome": dados["nome"].strip(),
-        "genero": dados["genero"].strip(),
-        "plataforma": dados["plataforma"].strip(),
-        "ano_lancamento": ano,
-        "descricao": descricao.strip()
-    }
-
-    if "capa_url" in dados:
-        capa_url = dados["capa_url"]
-        if not isinstance(capa_url, str):
-            return None, "O link da capa deve ser um texto válido."
-        capa_url = capa_url.strip()
-        try:
-            endereco = urlparse(capa_url)
-            valido = endereco.scheme in ("http", "https") and bool(endereco.hostname)
-        except ValueError:
-            valido = False
-        if capa_url and not valido:
-            return None, "Informe um link de capa HTTP ou HTTPS válido."
-        jogo_validado["capa_url"] = capa_url
-
-    return jogo_validado, None
-
-
-# Valida os dados de uma avaliação
-def validar_avaliacao(dados, *, criacao=True):
-    if not isinstance(dados, dict):
-        return None, "Envie os dados da avaliação em JSON."
-
-    if "nota" not in dados:
-        return None, "O campo 'nota' é obrigatório."
-
-    nota = dados["nota"]
-
-    if type(nota) not in (int, float) or not 0 <= nota <= 10:
-        return None, "A nota deve ser um número entre 0 e 10."
-
-    comentario = dados.get("comentario", "")
-
-    if not isinstance(comentario, str):
-        return None, "O comentário deve ser um texto válido."
-
-    avaliacao_validada = {
-        "nota": nota,
-        "comentario": comentario.strip()
-    }
-
-    if criacao:
-        autor_id = dados.get("autor_id")
-        if type(autor_id) is not int or autor_id <= 0:
-            return None, "O autor_id deve ser um inteiro positivo."
-        avaliacao_validada["autor_id"] = autor_id
-
-    if criacao or "metadados" in dados:
-        metadados = dados.get("metadados", {})
-        try:
-            validar_metadados(metadados)
-        except ValueError as exc:
-            return None, str(exc)
-        avaliacao_validada["metadados"] = metadados
-
-    return avaliacao_validada, None
-
-
 # Rota para verificar se o servidor está funcionando
 @app.get("/health")
 def health():
     return jsonify({
         "status": "ok",
-        "aplicacao": "TechGames",
+        "aplicacao": "TechGamer",
         "recursos": ["capa_url", "design_patterns", "media_servidor"],
     })
 
@@ -276,6 +181,24 @@ def listar_avaliacoes(jogo_id):
 
     resultado = repo.listar_avaliacoes(jogo_id)
 
+    return jsonify(resultado), 200
+
+
+@app.get("/autores/<int:autor_id>/avaliacoes")
+def listar_avaliacoes_por_autor(autor_id):
+    if autor_id <= 0:
+        return erro("O autor_id deve ser um inteiro positivo.")
+
+    repo = obter_repositorio()
+    jogos = {jogo["id"]: jogo for jogo in repo.listar_jogos()}
+    resultado = [
+        {"jogo": jogos[avaliacao["jogo_id"]], "avaliacao": avaliacao}
+        for avaliacao in repo.listar_todas_avaliacoes()
+        if type(avaliacao.get("autor_id")) is int
+        and avaliacao["autor_id"] == autor_id
+        and avaliacao.get("jogo_id") in jogos
+    ]
+    resultado.sort(key=lambda item: item["avaliacao"]["id"], reverse=True)
     return jsonify(resultado), 200
 
 
