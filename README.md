@@ -1,59 +1,93 @@
-# TechGamer - Gerenciador de Avaliações de Jogos
+# TechGamer
 
-Aplicação acadêmica em Python, Flask e Qt (PySide6), com persistência local em
-JSON. Permite cadastrar jogos, publicar avaliações de 0 a 10 com comentários e
-metadados, consultar médias e demonstrar Builder, Proxy e Observer. O catálogo
-tem busca, filtros, ordenação e paginação; perfis locais permitem consultar
-e gerenciar as próprias avaliações.
+Organize sua coleção de jogos, escreva avaliações e acompanhe as notas em um
+aplicativo para Windows.
 
-O enunciado exige execução sem instalar outros softwares. Para isso, foi criada
-uma versão portátil para **Windows de 64 bits**, com Python, Flask e Qt incluídos.
-O código-fonte continua disponível para leitura, testes e desenvolvimento.
+**[⬇ Baixar TechGamer para Windows — 64 bits](https://github.com/GaabrielLr415/Gerenciador-de-Avalia-es-de-Jogos/releases/download/v1.0.0/TechGamer-Windows-x64-20261024-151025.zip)**
 
-## Usar sem instalar
+Versão **1.0.0** · [Ver a Release e o arquivo de verificação](https://github.com/GaabrielLr415/Gerenciador-de-Avalia-es-de-Jogos/releases/tag/v1.0.0)
 
-1. Baixe o pacote **TechGamer-Windows-x64** da entrega e extraia o ZIP inteiro.
-2. Entre na pasta `TechGamer` e abra `TechGamer.exe` com dois cliques.
-3. Use a interface; o servidor Flask inicia e encerra automaticamente.
+## Baixar e abrir
 
-Mantenha a pasta `_internal` junto ao executável. Jogos e avaliações ficam em
-`dados/`; perfis e preferências ficam em `preferencias/`. Use uma pasta com
-permissão de gravação. As capas por URL dependem de internet.
+1. Clique no link de download acima.
+2. Clique com o botão direito no ZIP baixado e escolha **Extrair Tudo**.
+3. Abra a pasta extraída e entre na pasta **TechGamer**.
+4. Dê dois cliques em **TechGamer.exe**.
 
-O ZIP portátil é diferente do **Download ZIP** do código-fonte do GitHub.
-Consulte [como gerar, conferir e entregar o pacote](documentacao/portatil.md).
+**Pronto: a interface e o servidor local iniciam automaticamente.**
+Python, Flask, Qt e as bibliotecas necessárias já acompanham o pacote.
+Você não precisa instalar dependências nem abrir um terminal.
 
-## Estrutura
+Mantenha a pasta `_internal` junto ao executável e extraia o programa numa pasta
+em que você possa salvar arquivos, como Documentos.
 
-```text
-cliente/                   Interface Qt e comunicação HTTP
-servidor/app.py            API Flask
-servidor/validacoes.py      Validação dos corpos JSON da API
-servidor/patterns/         Builder, Proxy, serviço e Observer
-servidor/storage/          Repository JSON e contadores
-dados/                     Jogos e avaliações locais
-testes/                    Testes automatizados com dados temporários
-documentacao/              Requisitos, contrato, diagramas e validação
-requirements.txt           Dependências
-iniciar.py                 Inicializador do pacote portátil
-ferramentas/empacotar.py    Geração do ZIP Windows
-```
+> Para usar o programa, baixe o ZIP pelo link acima. O botão **Code → Download ZIP**
+> do GitHub baixa o código-fonte, que exige um ambiente de desenvolvimento.
 
-O Git ignora `.venv/`, caches Python, logs e `.local/`. O ambiente virtual contém
-as bibliotecas instaladas; `.local/` guarda notas e backups locais, usados apenas
-durante o desenvolvimento. Essas pastas não precisam ser enviadas ao GitHub.
+## O que você pode fazer
 
-## Preparar o código para desenvolvimento no Windows
+- Cadastrar jogos com nome, gênero, plataforma, ano, descrição e capa.
+- Buscar jogos, combinar filtros e ordenar o catálogo.
+- Avaliar com estrelas e notas de **0 a 10**, incluindo notas como **9,5**.
+- Escrever comentários e consultar a média das avaliações de cada jogo.
+- Criar perfis locais e acessar **Minhas avaliações** para gerenciar suas notas.
+- Editar ou excluir jogos e avaliações.
 
-Requer Python 3.10 a 3.15, 64 bits, pip e acesso à internet para baixar
-dependências. Use uma pasta em que o usuário possa gravar os dados.
-Para reproduzir o ambiente validado, use Python **3.13.5**. As dependências
-diretas e transitivas desse ambiente estão fixadas em `requirements.txt`.
-A versão efetivamente testada está no [relatório de validação](documentacao/validacao-entrega.md);
-a declaração de versão mínima não representa teste de todas as versões do Python.
+## Primeiro acesso
 
-Baixe o ZIP do repositório e extraia-o, ou use sua cópia local atualizada.
-Abra o PowerShell na raiz, onde está este README:
+1. Quando solicitado, crie um perfil com seu nome e um número de identificação.
+   Esse perfil é local e não exige cadastro em um serviço online.
+2. Escolha um jogo do catálogo ou clique em **Adicionar jogo**.
+3. Abra os detalhes do jogo e clique em **Avaliar jogo**.
+4. Para consultar ou editar suas avaliações, acesse **Minhas avaliações**.
+
+Os perfis usam IDs locais, sem senha ou autenticação. Para os testes de permissão,
+o ID **99** representa o moderador de demonstração.
+
+Consulte o [guia da interface](cliente/README.md) para conhecer os filtros,
+as estrelas, os perfis e as opções de capa.
+
+## Onde ficam meus dados?
+
+No pacote portátil, jogos e avaliações ficam em `dados/`, ao lado de
+`TechGamer.exe`. Perfis e preferências ficam em `preferencias/`.
+Os dados permanecem salvos ao fechar o aplicativo.
+
+Para fazer uma cópia de segurança, feche o programa e copie a pasta inteira
+`TechGamer`, incluindo os arquivos ocultos. Capas escolhidas do computador
+continuam nos caminhos originais; mantenha também esses arquivos.
+
+**As capas por link dependem de internet.** O cadastro, as avaliações e as consultas
+usam o servidor local e arquivos JSON, sem banco de dados ou serviços de IA.
+
+## Como o projeto funciona
+
+O TechGamer é um projeto acadêmico da disciplina **Paradigmas de Programação**,
+com dois módulos que se comunicam por HTTP local:
+
+| Parte | Tecnologia | Responsabilidade |
+|---|---|---|
+| Cliente | Qt / PySide6 | Exibir as telas e enviar as ações do usuário à API. |
+| Servidor | Flask | Validar as operações, aplicar as regras e salvar os dados. |
+| Persistência | Arquivos JSON | Guardar jogos, avaliações e histórico de IDs. |
+
+O projeto aplica três padrões: **Builder**, para construir avaliações;
+**Proxy**, para verificar permissões de edição e exclusão; e **Observer**,
+para atualizar a média após alterações nas avaliações.
+
+## Para quem vai desenvolver
+
+<details>
+<summary><strong>Ver instalação, execução pelo código e testes</strong></summary>
+
+### Preparar o ambiente
+
+Ambiente validado: **Windows de 64 bits com Python 3.13.5**.
+A instalação das dependências exige internet. As versões estão fixadas em
+`requirements.txt`.
+
+Clone o repositório ou baixe o código em **Code → Download ZIP**.
+Abra o PowerShell na raiz do projeto, onde está este README, e execute:
 
 ```powershell
 py -m venv .venv
@@ -61,93 +95,84 @@ py -m venv .venv
 .\.venv\Scripts\python.exe -m pip check
 ```
 
-Os comandos usam o Python do ambiente diretamente; não é necessário ativar
-scripts nem alterar a política de execução do PowerShell.
+Os comandos usam o Python do ambiente diretamente, sem precisar ativá-lo.
 
-## Executar
+### Abrir a aplicação pelo código
 
-No primeiro terminal, a partir da raiz:
+Para iniciar o servidor e o cliente juntos:
+
+```powershell
+.\.venv\Scripts\python.exe -B iniciar.py
+```
+
+Para executar os módulos separadamente, abra dois terminais na raiz.
+No primeiro, inicie o servidor:
 
 ```powershell
 .\.venv\Scripts\python.exe -m servidor.app
 ```
 
-Confira `http://127.0.0.1:5000/health`: deve retornar `status: ok` e os recursos
-`capa_url`, `design_patterns` e `media_servidor`.
-
-Em outro terminal, também na raiz:
+No segundo, inicie o cliente:
 
 ```powershell
 .\.venv\Scripts\python.exe -m cliente
 ```
 
-Mantenha o terminal Flask aberto durante o uso. Encerre a interface pela janela
-e o servidor com Ctrl+C. Se a porta 5000 já estiver ocupada, encerre a instância
-anterior do TechGamer antes de iniciar outra.
+Nesse modo, o servidor usa `http://127.0.0.1:5000`.
+A rota `/health` informa o estado da API. Feche o cliente pela janela
+e encerre o servidor com **Ctrl+C**. Use uma instância por pasta de dados.
 
-Para apontar o cliente para outro servidor já iniciado:
-
-```powershell
-.\.venv\Scripts\python.exe -m cliente --servidor http://127.0.0.1:5000
-```
-
-## Avaliações e padrões
-
-- Novas avaliações exigem `autor_id` inteiro positivo e nota entre 0 e 10.
-  Comentário é opcional. Na API, `metadados` é um objeto JSON opcional, com
-  padrão `{}`. O formulário Qt omite esse campo e preserva os valores existentes
-  ao editar nota e comentário.
-- O Builder valida e constrói os dados antes da persistência.
-- Para editar ou excluir individualmente, selecione o ID local do autor ou o
-  moderador fictício **99**. O cliente envia `X-Ator-Id`; o Proxy verifica a regra.
-- IDs locais servem à demonstração acadêmica, sem login ou autenticação.
-- O perfil local guarda nome e ID neste computador. O menu do avatar permite
-  trocar perfil ou sair; sair preserva os jogos e as avaliações.
-- **Minhas avaliações** consulta as avaliações do perfil em uma requisição
-  HTTP, com busca e paginação locais. Reinicie Flask e Qt após atualizar o código.
-- Autor, ID da avaliação e vínculo com o jogo são preservados na edição.
-- Avaliações antigas sem autor podem ser lidas, mas não alteradas individualmente.
-  A exclusão de um jogo continua removendo todas as suas avaliações em cascata.
-- O Observer atualiza a média no servidor; o Qt consulta e apresenta o resultado.
-
-## Persistência
-
-O servidor cria `dados/jogos.json` e `dados/avaliacoes.json` quando ausentes.
-`dados/.contadores_id.json` preserva os IDs históricos e não é versionado.
-Para transportar dados existentes, copie os três arquivos com o servidor parado,
-incluindo o contador oculto. Não remova o contador para reiniciar o aplicativo.
-
-Arquivos de dados inválidos podem gerar backup `.bak` antes da recuperação.
-Na cascata, há tentativa de restauração se uma gravação falhar. O armazenamento
-não oferece transação entre arquivos ou bloqueio entre múltiplos processos.
-Use uma instância local para a demonstração.
-
-Não teste cadastros de demonstração sobre os dados reais. Para ensaiar,
-extraia uma cópia separada do projeto, sem copiar `dados/` nem `.venv/`.
-
-## Testes
+### Executar os testes
 
 ```powershell
 .\.venv\Scripts\python.exe -B -m unittest discover -s testes -p "test_*.py" -v
 ```
 
-Os testes de dados usam diretórios temporários. Os testes Qt usam interface
-sem janela visível e um servidor HTTP local em porta temporária.
-Consulte [a cobertura](testes/README.md) e o
-[relatório de validação](documentacao/validacao-entrega.md).
+A última rodada registrada teve **107 testes aprovados**, sem falhas ou erros.
+Os testes usam dados temporários; a interface é exercitada sem janela visível,
+com comunicação HTTP local.
 
-## Documentação e apresentação
+Consulte a [cobertura dos testes](testes/README.md) e o
+[relatório de validação](documentacao/validacao-entrega.md) para ver os resultados
+e os limites dessa verificação.
 
-- [Requisitos e critérios de aceitação](documentacao/requisitos-e-aceitacao.md)
-- [Contrato da API](documentacao/contrato-api.md)
-- [Arquitetura e diagramas do servidor e cliente](documentacao/arquitetura-e-padroes.md)
-- [Guia de leitura e organização do código](documentacao/guia-do-codigo.md)
-- [Roteiro de demonstração T9.1 a T9.4](documentacao/entrega-design-patterns.md)
-- [Validação e pendências de entrega](documentacao/validacao-entrega.md)
-- [Responsabilidades e acompanhamento](documentacao/ACOMPANHAMENTO.md)
-- [Uso da interface](cliente/README.md)
+### Onde alterar o código
 
-O executável foi conferido nesta máquina, com Python removido do PATH do processo,
-incluindo Qt, HTTP e operações com dados temporários. Gabriel informou aprovação
-dos testes manuais em 24/10/2026. A execução em outro computador sem Python e o
-registro das telas ainda aguardam confirmação no relatório de validação.
+```text
+cliente/                   Interface Qt e comunicação HTTP
+servidor/app.py            Endpoints da API Flask
+servidor/validacoes.py     Validação dos dados recebidos
+servidor/patterns/         Builder, Proxy e Observer
+servidor/storage/          Persistência JSON e contadores de IDs
+dados/                     Jogos e avaliações
+testes/                    Testes automatizados
+documentacao/              Guias, requisitos, diagramas e validação
+iniciar.py                 Inicialização automática de servidor e cliente
+ferramentas/empacotar.py    Geração do pacote portátil
+```
+
+Comece pelo [guia do código](documentacao/guia-do-codigo.md).
+Para gerar outro executável, siga o [guia de empacotamento](documentacao/portatil.md).
+
+O Git ignora `.venv/`, `.local/`, `dist/`, caches e logs.
+As bibliotecas instaladas e os arquivos temporários ficam fora do repositório.
+
+</details>
+
+## Documentação
+
+| Quero consultar… | Onde encontrar |
+|---|---|
+| Como usar as telas | [Guia da interface](cliente/README.md) |
+| Requisitos funcionais, restrições e condições de aceitação | [Requisitos e aceitação](documentacao/requisitos-e-aceitacao.md) |
+| Classes e design patterns do cliente e do servidor | [Arquitetura e diagramas](documentacao/arquitetura-e-padroes.md) |
+| Rotas, campos e respostas HTTP | [Contrato da API](documentacao/contrato-api.md) |
+| Organização e leitura do projeto | [Guia do código](documentacao/guia-do-codigo.md) |
+| Resultados dos testes e pendências | [Relatório de validação](documentacao/validacao-entrega.md) |
+| Como gerar o executável | [Pacote portátil](documentacao/portatil.md) |
+| Roteiro da apresentação | [Demonstração dos padrões](documentacao/entrega-design-patterns.md) |
+| Responsabilidades da equipe | [Acompanhamento](documentacao/ACOMPANHAMENTO.md) |
+
+Os testes manuais foram aprovados conforme relato de Gabriel.
+A execução em outro computador sem Python ainda aguarda confirmação.
+As capturas e a documentação final da apresentação serão acrescentadas pela equipe.
