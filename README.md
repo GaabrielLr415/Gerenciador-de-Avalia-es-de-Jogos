@@ -164,6 +164,7 @@ As bibliotecas instaladas e os arquivos temporários ficam fora do repositório.
 | Quero consultar… | Onde encontrar |
 |---|---|
 | Documentação final do projeto | [PROJETO TECHGAMER - FINAL (PDF)](documentacao/PROJETO%20TECHGAMER%20-%20FINAL.pdf) |
+| Situação geral e pendências da entrega | [Checklist geral](documentacao/checklist-geral.md) |
 | Como usar as telas | [Guia da interface](cliente/README.md) |
 | Requisitos funcionais, restrições e condições de aceitação | [Requisitos e aceitação](documentacao/requisitos-e-aceitacao.md) |
 | Classes e design patterns do cliente e do servidor | [Arquitetura e diagramas](documentacao/arquitetura-e-padroes.md) |

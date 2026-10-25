@@ -69,6 +69,6 @@ para o Word não foram informadas nessa confirmação.
 - [Roteiro dos padrões](entrega-design-patterns.md)
 - [Resultados e aceite pendente](validacao-entrega.md)
 
-Os registros anteriores de requisitos e arquitetura estão em `historico/`.
-O conteúdo foi preservado; a navegação principal usa os documentos acima.
+Os registros anteriores de requisitos e arquitetura permanecem no histórico do Git.
+A navegação principal usa os documentos acima.
 O [guia do código](guia-do-codigo.md) apresenta uma ordem de leitura para novos integrantes.

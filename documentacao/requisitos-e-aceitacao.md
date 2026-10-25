@@ -8,7 +8,7 @@ final: **Gabriel**; organização documental: **Angélica**.
 - [Plano de testes fornecido](../plano_testes_aplicacoes_qt_flask.pdf), páginas 1
   e 10: comportamento observável de um padrão criacional, estrutural e
   comportamental, testes T9.1 a T9.4 e validação da interface, dados e HTTP.
-- [Requisitos registrados por Edino](historico/requisitos-e-regras-edino.md):
+- Requisitos registrados por Edino, consolidados neste documento:
   RF01 a RF09, tecnologias e condições de aceitação.
 - Issues #1 a #5: responsabilidades e escopo acordado pela equipe.
 - Código e testes atuais: evidência técnica da implementação.

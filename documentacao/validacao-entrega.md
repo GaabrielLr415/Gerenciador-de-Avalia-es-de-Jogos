@@ -125,7 +125,7 @@ continuam aplicadas à edição e exclusão individual.
 - O fluxo antigo de avaliação direta pelo card, sem chamadas ou sinais ligados,
   foi removido. O card continua abrindo detalhes, onde o usuário pode avaliar.
 - Foram removidos placeholders `.gitkeep` e um arquivo de saída do Git na raiz.
-  Os documentos em subpastas repetidas foram preservados em `historico/`.
+  As versões iniciais da documentação permanecem disponíveis no histórico do Git.
 - O [guia do código](guia-do-codigo.md) explica a ordem de leitura e onde alterar cada parte.
 
 ## Formulário de avaliação simplificado
@@ -198,9 +198,9 @@ integrado pelo PR #21. Essas contagens correspondem ao código de cada época.
 A referência atual é a tabela de **107 testes** acima.
 
 Essas evidências anteriores não substituem o aceite humano da interface atual
-ou uma instalação em outra máquina. O [registro de 22/10](revisao-issues-2026-10-22.md)
-preserva a auditoria das issues daquela data; nenhuma issue foi atualizada
-ou encerrada nesta revisão.
+ou uma instalação em outra máquina. A auditoria das issues de 22/10 pode ser
+consultada no histórico do Git; nenhuma issue foi atualizada ou encerrada
+nesta revisão.
 
 ## Aceite que ainda depende da equipe
 

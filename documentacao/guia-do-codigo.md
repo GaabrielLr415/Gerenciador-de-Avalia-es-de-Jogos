@@ -78,5 +78,5 @@ Execute na raiz, com o ambiente instalado:
 
 Os testes usam arquivos e preferências temporários. Os testes Qt rodam sem
 janela visível; a aparência precisa de conferência manual quando o layout mudar.
-Os [documentos históricos](historico/README.md) preservam os registros anteriores;
-o README e os documentos diretamente em `documentacao/` descrevem o estado atual.
+As versões anteriores da documentação podem ser consultadas no histórico do Git.
+O README e os documentos diretamente em `documentacao/` reúnem os guias do projeto.
