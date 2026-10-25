@@ -1,11 +1,18 @@
 # TechGamer
 
+[![Python 3.13.5](https://img.shields.io/badge/Python-3.13.5-3776AB)](requirements.txt)
+[![Qt com PySide6 6.12.0](https://img.shields.io/badge/Qt-PySide6%206.12.0-41CD52)](cliente/README.md)
+[![Backend Flask 3.1.3](https://img.shields.io/badge/Backend-Flask%203.1.3-lightgrey)](documentacao/contrato-api.md)
+[![Padrões Builder, Proxy e Observer](https://img.shields.io/badge/Patterns-Builder%20%7C%20Proxy%20%7C%20Observer-orange)](#padrões-de-projeto)
+
 Organize sua coleção de jogos, escreva avaliações e acompanhe as notas em um
 aplicativo para Windows.
 
 **[⬇ Baixar TechGamer para Windows — 64 bits](https://github.com/GaabrielLr415/Gerenciador-de-Avalia-es-de-Jogos/releases/download/v1.0.0/TechGamer-Windows-x64-20261024-151025.zip)**
 
 Versão **1.0.0** · [Ver a Release e o arquivo de verificação](https://github.com/GaabrielLr415/Gerenciador-de-Avalia-es-de-Jogos/releases/tag/v1.0.0)
+
+**[📄 Documentação final do projeto (PDF)](documentacao/PROJETO%20TECHGAMER%20-%20FINAL.pdf)** · [Arquitetura e diagramas de classes](documentacao/arquitetura-e-padroes.md)
 
 ## Baixar e abrir
 
@@ -71,9 +78,17 @@ com dois módulos que se comunicam por HTTP local:
 | Servidor | Flask | Validar as operações, aplicar as regras e salvar os dados. |
 | Persistência | Arquivos JSON | Guardar jogos, avaliações e histórico de IDs. |
 
-O projeto aplica três padrões: **Builder**, para construir avaliações;
-**Proxy**, para verificar permissões de edição e exclusão; e **Observer**,
-para atualizar a média após alterações nas avaliações.
+## Padrões de projeto
+
+| Padrão | Categoria | Aplicação no TechGamer |
+|---|---|---|
+| **Builder** | Criacional | Construir avaliações com nota, autor, comentário e metadados opcionais. |
+| **Proxy** | Estrutural | Permitir edição e exclusão de avaliações pelo autor ou moderador e bloquear terceiros. |
+| **Observer** | Comportamental | Atualizar a média após publicação, edição ou exclusão de avaliações. |
+
+Consulte a [implementação dos padrões](servidor/patterns/avaliacoes.py), os
+[diagramas de classes do cliente e do servidor](documentacao/arquitetura-e-padroes.md)
+e o [roteiro de demonstração T9.1 a T9.4](documentacao/entrega-design-patterns.md).
 
 ## Para quem vai desenvolver
 
